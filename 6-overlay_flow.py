@@ -1,14 +1,11 @@
 # Calculate optical flow, overlay it on the clip and save it as matrices instead of the mp4 files we've been using so far.
+from builtins import str
 
-import os
+import cv2
 import hickle as hkl
 import numpy as np
-import argparse
-import cv
-import cv2
-import matplotlib.pyplot as plt 
+import os
 import subprocess as sp
-
 
 
 def label_to_one_hot(label):
@@ -24,25 +21,25 @@ def writeOpticalFlowToVideo(video_string):
     
 
     cap = cv2.VideoCapture(video_string)
-    cap.set(cv2.cv.CV_CAP_PROP_FPS, 10000)
+    cap.set(cv2.CAP_PROP_FPS, 10000)
     cap.set(1,0)
-    print cap.grab()
+    print(cap.grab())
     
     ret, frame1 = cap.read()
     height = frame1.shape[0]
-    print height
+    print(height)
     width = frame1.shape[1]
     depth = frame1.shape[2]
     height_end = height - height/7 ## we don't really want to include the fencers names/countries
-    print height_end
+    print(height_end)
     height_start = 0
     
     frame1 = np.concatenate((frame1[height_start:height_end,0:width,0:depth],frame1[height_end+height/14-10:height,0:width,0:depth]), axis = 0)
-    print frame1.shape
+    print(frame1.shape)
     
     prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
     hsv = np.zeros_like(frame1)
-    print hsv.shape, "hsv shape"
+    print(hsv.shape, "hsv shape")
     hsv[...,1] = 255
     fps = str(13)
     FFMPEG_BIN = "ffmpeg"
@@ -71,14 +68,14 @@ def writeOpticalFlowToVideo(video_string):
     else:
         last_frame = 1
 
-    print frames_till_video_end
+    print(frames_till_video_end)
     proc = sp.Popen(command, stdin=sp.PIPE, stderr=sp.PIPE)
     cv2.imshow("frame",frame1)
     subcount = 1
 
     while subcount <= frames_till_video_end-last_frame:
         
-        print subcount
+        print(subcount)
         ret, frame2 = cap.read()
         #frame2 = frame2[int(height_start):height_end,0:width,0:depth]
         frame2 = np.concatenate((frame2[height_start:height_end,0:width,0:depth],frame2[height_end+height/14-10:height,0:width,0:depth]), axis = 0)
@@ -94,7 +91,7 @@ def writeOpticalFlowToVideo(video_string):
         # this is really key. 
         flow[:,:,0] = flow[:,:,0] - np.mean(flow[:,:,0])
         flow[:,:,1] = flow[:,:,1] - np.mean(flow[:,:,1])
-        print flow.shape
+        print(flow.shape)
         
             
         
@@ -152,8 +149,8 @@ def writeOpticalFlowToVideo(video_string):
     label = video_string.split('/')[1][0]
     label = np.expand_dims(label_to_one_hot(label),axis=0)
 
-    print label
-    print to_save.shape, "to save shape"
+    print(label)
+    print(to_save.shape, "to save shape")
     return to_save,label
 
 
@@ -169,13 +166,13 @@ for i in os.listdir(os.getcwd() + "/preinception_data"):
 if len(data_saved_previously) > 0:
     data_saved = int(max(data_saved_previously))
 data_saved = data_saved + 1
-print "Largest Number Found", data_saved
+print("Largest Number Found", data_saved)
 #######################################################################################################################################
 
 
 for i in os.listdir(os.getcwd() + "/final_training_clips"):
     if i.endswith(".mp4"):
-        print i
+        print(i)
         output,label = writeOpticalFlowToVideo("final_training_clips/" + i)
         os.rename("final_training_clips/"+ i, "final_training_clips/already_optical_flowed/"+i)
         if data_created == 0:
@@ -192,12 +189,12 @@ for i in os.listdir(os.getcwd() + "/final_training_clips"):
             hkl.dump(train_labels,'final_training_data/train_labels-' + str(data_saved) + '.hkl', mode='w', compression='gzip', compression_opts=9)
             
             
-            print '################### DATA SAVED', data_saved
+            print('################### DATA SAVED', data_saved)
             data_saved = data_saved + 1
             train_set = output # it'll get reset up above
             data_created = 0
 
-print train_set.shape
-print train_labels.shape
+print(train_set.shape)
+print(train_labels.shape)
 hkl.dump(train_set, 'preinception_data/train_set-' + str(data_saved) + '.hkl', mode='w', compression='gzip', compression_opts=9)
 hkl.dump(train_labels,'final_training_data/train_labels-' + str(data_saved) + '.hkl', mode='w', compression='gzip', compression_opts=9)
