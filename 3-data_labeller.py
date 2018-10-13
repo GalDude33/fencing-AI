@@ -92,15 +92,15 @@ for i in os.listdir(os.getcwd() + "/videos"):
         #print i.split("-")
         match_number = int(i.split("-")[0])
         hit_number = int(i.split("-")[1].replace(".mp4",""))
-        print "Match-Hit",match_number, hit_number
+        print("Match-Hit",match_number, hit_number)
         cap = cv2.VideoCapture("videos/" + i)
         cap_end_point = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
         cap.set(1,cap_end_point-1)  
         ret,frame = cap.read()
         hit_type = check_lights(frame)
         left,right = check_score(frame)
-        print hit_type
-        print left,right
+        print(hit_type)
+        print(left,right)
         
         cap.release()
 
@@ -115,12 +115,12 @@ for i in os.listdir(os.getcwd() + "/videos"):
                 update_left,update_right = check_score(frame)
                 cap.release()
                 priority = caption(hit_type,left,right,update_left,update_right)
-                print update_left, update_right
+                print(update_left, update_right)
                 
-                print priority
+                print(priority)
                 if priority != 'None':
                     os.rename("videos/"+ i, "training_quarantine/"+priority+i)
-                print " "
+                print(" ")
 
         continue
     else:
