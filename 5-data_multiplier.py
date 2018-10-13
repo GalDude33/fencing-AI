@@ -1,18 +1,8 @@
-## Performs data-augmentation by flipping all clips horizontally. 
+## Performs data-augmentation by flipping all clips horizontally.
+from builtins import str
 
 import cv2
-import tensorflow as tf
-import numpy as np
-import argparse
-import time
-import cv
-import subprocess as sp
-import os
 from pylab import *
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-
-
 
 FFMPEG_BIN = "ffmpeg"
 import subprocess as sp
@@ -23,7 +13,7 @@ fps = str(13)
 ######################### Here we flip every video horizontally, and double our training set! ########################
 for i in os.listdir(os.getcwd() + "/training_quarantine"):
     if i.endswith(".mp4"):
-    	cap = cv2.VideoCapture("training_quarantine/" + str(i))
+        cap = cv2.VideoCapture("training_quarantine/" + str(i))
         if i[0] == 'L':
             i = 'R'+ i.lstrip('L')
         elif i[0] == 'R':
@@ -31,7 +21,7 @@ for i in os.listdir(os.getcwd() + "/training_quarantine"):
 
         output_file = 'more_training_data/' + str(i).replace('.mp4', '-flipped') + '.mp4' 
             # clips_recorded = clips_recorded+1
-        cap.set(cv2.cv.CV_CAP_PROP_FPS, 10000)
+        cap.set(cv2.CAP_PROP_FPS, 10000)
         command = [FFMPEG_BIN,
         '-y',
         '-f', 'rawvideo',
