@@ -1,17 +1,9 @@
 ## Downsamples our training clips by taking less frames from the beginning of the video (where we need less info),
-## and keeping more of the frames at the end, where we need to see all blade actions. 
+## and keeping more of the frames at the end, where we need to see all blade actions.
+from builtins import str
 
 import cv2
-import tensorflow as tf
-import numpy as np
-import argparse
-import time
-import cv
-import subprocess as sp
-import os
 from pylab import *
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 
 
 
@@ -23,13 +15,12 @@ fps = str(13)
 downsample_until_frame_number = 16
 downsample_by_divisor = 2
 
-for i in os.listdir(os.getcwd() + "/training_data"):
+for i in os.listdir(os.getcwd() + "/videos"):
     if i.endswith(".mp4"):
-    	cap = cv2.VideoCapture("training_data/" + str(i))
-        
-        output_file = 'training_quarantine/' + str(i)
-            # clips_recorded = clips_recorded+1
-        cap.set(cv2.cv.CV_CAP_PROP_FPS, 10000)
+        cap = cv2.VideoCapture("videos/"+str(i))
+        output_file = 'training_quarantine/'+str(i)
+        # clips_recorded = clips_recorded+1
+        cap.set(cv2.CAP_PROP_FPS, 10000)
         command = [FFMPEG_BIN,
         '-y',
         '-f', 'rawvideo',
