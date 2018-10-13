@@ -7,7 +7,6 @@ import tensorflow as tf
 import numpy as np
 import argparse
 import time
-import cv
 import subprocess as sp
 import os
 from pylab import *
@@ -17,11 +16,10 @@ green_box = cv2.imread("greenbox.png")
 red_box = cv2.imread("redbox.png")
 white_box = cv2.imread("whitebox.png")
 
+import pickle
 
-import cPickle
 with open('logistic_classifier_0-15.pkl', 'rb') as fid:
-    
-    model = cPickle.load(fid)
+    model = u = pickle.Unpickler(fid, encoding='latin1').load()
 
 ################################################################################################
 
@@ -94,7 +92,7 @@ for i in os.listdir(os.getcwd() + "/videos"):
         hit_number = int(i.split("-")[1].replace(".mp4",""))
         print("Match-Hit",match_number, hit_number)
         cap = cv2.VideoCapture("videos/" + i)
-        cap_end_point = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
+        cap_end_point = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         cap.set(1,cap_end_point-1)  
         ret,frame = cap.read()
         hit_type = check_lights(frame)
