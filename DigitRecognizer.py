@@ -15,5 +15,5 @@ def getDigit(digitImgArr):
     img = Image.fromarray(wb.astype(np.uint8))
     tools = pyocr.get_available_tools()[0]
     text = tools.image_to_string(img, builder=pyocr.builders.DigitBuilder(7))
-    return text
+    return int(text)
 
