@@ -3,23 +3,13 @@
 ## as it doesn't provide as any more information. 
 
 import cv2
-import tensorflow as tf
-import numpy as np
-import argparse
-import time
-import subprocess as sp
-import os
 from pylab import *
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+from DigitRecognizer import getDigit
+
+
 green_box = cv2.imread("greenbox.png")
 red_box = cv2.imread("redbox.png")
 white_box = cv2.imread("whitebox.png")
-
-import pickle
-
-with open('logistic_classifier_0-15.pkl', 'rb') as fid:
-    model = u = pickle.Unpickler(fid, encoding='latin1').load()
 
 ################################################################################################
 
@@ -56,8 +46,8 @@ def check_lights(frame):
  ################################################################################################
 
 def check_score(frame):
-     left = model.predict(frame[309:325, 265:285].reshape(1,-1)) 
-     right = model.predict(frame[309:325, 355:375].reshape(1,-1))
+     left = getDigit(frame[309:325, 265:285])
+     right = getDigit(frame[309:325, 355:375])
      return left, right
 ################################################################################################
 
