@@ -10,22 +10,7 @@ from pathlib import Path
 from DigitRecognizer import getDigit
 from PIL import Image
 
-# this is how long our 'recording time' will be, where we don't check for lights,
-# actual recording time,
-# its so long because we want to skip people testing their blades after hits
-jump_length = 260
-
-# is jump length - hide length = 'clip length'
-
-# where we're not actually interested in keeping the frames,
-# but don't want them to be seen by 'not in record mode'
-hide_length = 200
-
 videos_to_cut = glob.glob(os.getcwd() + "/precut/" + "*.mp4").__len__()
-# for i in os.listdir():
-#     if i.endswith(".mp4"):
-#         videos_to_cut = videos_to_cut + 1
-
 print("Cutting", videos_to_cut, "videos")
 
 
@@ -153,7 +138,7 @@ def find_hit_end(cap: CV2VideoCapture):
 
 
 already_processed = 0
-for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
+for vid in sorted(glob.glob(os.getcwd() + "/precut/" + "*.mp4"), key=lambda x: int(Path(x).stem)):
     if int(Path(vid).stem) >= already_processed:
         print("Video:", vid)
         clips_recorded = 0
