@@ -92,7 +92,7 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
                 proc = sp.Popen(command, stdin=sp.PIPE, stderr=sp.PIPE)
 
             if cap.isOpened():
-                cap.set(1, position)
+                cap.set(cv2.CAP_PROP_POS_FRAMES, position)
                 cap.set(cv2.CAP_PROP_FPS, 10000)
 
                 while cap.isOpened():
@@ -144,7 +144,7 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
                         except:
                             break
 
-                    if recording_mode:
+                    elif recording_mode:
                         if frames_till_video_end >= hide_length:
                             if position % 2 == 0:
                                 proc.stdin.write(frame.tostring())
