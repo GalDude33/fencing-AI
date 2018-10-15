@@ -120,8 +120,8 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
                                         frame[330:334, 380:500].astype(int) - green_box.astype(int))) <= 40000) or (
                                     np.sum(abs(frame[330:334, 140:260].astype(int) - red_box.astype(int))) <= 40000):
 
-                                left_score = getDigit(frame[309:325, 265:285])
-                                right_score = getDigit(frame[309:325, 355:375])
+                                left_score = int(getDigit(frame[309:325, 265:285]))
+                                right_score = int(getDigit(frame[309:325, 355:375]))
                                 print(left_score, right_score)
 
                                 if (left_score == 15) or (right_score == 15):
