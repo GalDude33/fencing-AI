@@ -35,7 +35,6 @@ jump_length = 260
 # where we're not actually interested in keeping the frames,
 # but don't want them to be seen by 'not in record mode'
 hide_length = 200
-video_number = 0
 
 videos_to_cut = glob.glob(os.getcwd() + "/precut/" + "*.mp4").__len__()
 # for i in os.listdir():
@@ -106,7 +105,7 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
                         # this check is here because the vid should be prevented from 
                         # starting a clip less than frames_till_vid_end away from 
                         # the end
-                        if position == (cap_end_point):
+                        if position == cap_end_point:
                             break
                         elif cap.get(cv2.CAP_PROP_POS_FRAMES) >= cap_end_point:
                             print("break")
@@ -162,4 +161,3 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
                 print("Failed to open video")
 
             cap.release()
-            video_number = video_number + 1
