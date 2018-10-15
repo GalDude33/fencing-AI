@@ -17,10 +17,6 @@ def check_lights(frame):
     # returns a string, either On-On, On-Off, Off-On, Off-Off, On-No, No-On, Off-No, No-Off
     
     # red is on the left, green on the right
-    leftOff = False
-    leftOn = False
-    rightOff = False
-    rightOn = False
     string = ""
      #check for left on target light
     if (np.sum(abs(frame[330:334, 140:260].astype(int)-red_box.astype(int))) <= 40000):
@@ -34,21 +30,22 @@ def check_lights(frame):
     #check for right off target light
     string = string + "-"
     if (np.sum(abs(frame[330:334, 380:500].astype(int)-green_box.astype(int))) <= 40000):
-    
        string = string + "On"
-    #ccheck for right on target light
+    #check for right on target light
     elif (np.sum(abs(frame[337:348, 390:406].astype(int)-white_box.astype(int))) <= 7000):
         string = string + "Off"
     else:
         string = string + "No"
         
     return string
- ################################################################################################
+
+################################################################################################
 
 def check_score(frame):
      left = getDigit(frame[309:325, 265:285])
      right = getDigit(frame[309:325, 355:375])
      return left, right
+
 ################################################################################################
 
 def caption(hit_type,left,right,update_left,update_right):
@@ -80,10 +77,10 @@ for i in os.listdir(os.getcwd() + "/videos"):
         #print i.split("-")
         match_number = int(i.split("-")[0])
         hit_number = int(i.split("-")[1].replace(".mp4",""))
-        print("Match-Hit",match_number, hit_number)
+        print("Match-Hit", match_number, hit_number)
         cap = cv2.VideoCapture("videos/" + i)
         cap_end_point = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        cap.set(1,cap_end_point-1)  
+        cap.set(cv2.CAP_PROP_POS_FRAMES, cap_end_point-1)
         ret,frame = cap.read()
         hit_type = check_lights(frame)
         left,right = check_score(frame)
@@ -98,7 +95,7 @@ for i in os.listdir(os.getcwd() + "/videos"):
             if os.path.isfile(next_hit) == True:
                 # open the next hit
                 cap = cv2.VideoCapture(next_hit)
-                cap.set(1,0)
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 ret,frame = cap.read()
                 update_left,update_right = check_score(frame)
                 cap.release()
