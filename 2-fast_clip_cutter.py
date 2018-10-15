@@ -6,6 +6,9 @@ import os
 import cv2
 from pylab import *
 from pathlib import Path
+from DigitRecognizer import getDigit
+from PIL import Image
+
 
 green_box = cv2.imread("greenbox.png")
 red_box = cv2.imread("redbox.png")
@@ -19,17 +22,6 @@ white_box = cv2.imread("whitebox.png")
 #      scoreRight = frame[310:325, 355:375]
 
 FFMPEG_BIN = "ffmpeg"
-
-# Load a pretrained logisitc classifier which distinguishes between numbers 0-15.
-import pickle
-
-# with open('logistic_classifier_0-15.pkl', 'rb') as fid:
-#    model = pickle.load(fid)
-
-with open('logistic_classifier_0-15.pkl', 'rb') as f:
-    u = pickle.Unpickler(f, encoding='latin1')
-    model = u.load()
-    # print(p)
 
 fps = str(13)
 
@@ -67,7 +59,7 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
         cap_end_point = cap_end_point - jump_length  # ensures videos don't overrun
         print("Beginning to cut...")
 
-        position = 2000
+        position = 0
 
         while position < cap_end_point:
             cap = cv2.VideoCapture(str(vid))
@@ -128,8 +120,8 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
                                         frame[330:334, 380:500].astype(int) - green_box.astype(int))) <= 40000) or (
                                     np.sum(abs(frame[330:334, 140:260].astype(int) - red_box.astype(int))) <= 40000):
 
-                                left_score = model.predict(frame[309:325, 265:285].reshape(1, -1))
-                                right_score = model.predict(frame[309:325, 355:375].reshape(1, -1))
+                                left_score = getDigit(frame[309:325, 265:285])
+                                right_score = getDigit(frame[309:325, 355:375])
                                 print(left_score, right_score)
 
                                 if (left_score == 15) or (right_score == 15):
