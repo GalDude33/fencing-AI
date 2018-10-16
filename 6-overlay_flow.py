@@ -60,7 +60,7 @@ def writeOpticalFlowToVideo(video_string):
                 '-b:v', '5000k',
                 output_file ]
 
-    frames_till_video_end = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
+    frames_till_video_end = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     cap.set(1,0)
     if frames_till_video_end == 23:
         #read a frame
