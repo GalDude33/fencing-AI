@@ -24,12 +24,12 @@ with tf.Session() as sess:
         if i.endswith(".hkl"):
             if "set" in i:
                 number = i.split("-")[-1].replace(".hkl","")
-                print number
+                print(number)
                 train_set = hkl.load(os.getcwd() + '/preinception_data/'+i)
-                print "Training Data:", train_set.shape
+                print("Training Data:", train_set.shape)
 
                 train_labels = hkl.load(os.getcwd() + '/final_training_data/'+"train_labels-" + str(number) + ".hkl")
-                print "Train Labels:", train_labels.shape
+                print("Train Labels:", train_labels.shape)
                 for example in range(len(train_set)):
 
                     
@@ -43,7 +43,7 @@ with tf.Session() as sess:
                         frame_representation[frame] = np.squeeze(rep)
                     
                     frame_representation = np.expand_dims(frame_representation,axis=0)    
-                    print " ###########  Time for clip (21 forward passes) {} ", (time.time() - start)
+                    print(" ###########  Time for clip (21 forward passes) {} ", (time.time() - start))
                     
                     if example == 0:
                         data_set = frame_representation
@@ -51,10 +51,10 @@ with tf.Session() as sess:
                         data_set = np.concatenate((data_set,frame_representation), axis = 0)
                    
                     
-                    print data_set.shape
+                    print(data_set.shape)
                 hkl.dump(data_set, 'final_training_data/conv_features_train' + '-' + str(number) +'.hkl', mode='w', compression='gzip', compression_opts=9)
                 
-                print "Section Saved"
+                print("Section Saved")
 
 # In[3]:
 
