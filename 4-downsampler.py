@@ -43,7 +43,7 @@ for i in os.listdir(os.getcwd() + "/videos"):
         while(cap.isOpened()):
             ret, frame = cap.read()
             counter = counter + 1
-            if ret==True:
+            if ret:
                 if counter <= downsample_until_frame_number and counter % downsample_by_divisor == 0:
                     proc.stdin.write(frame.tostring())
                 elif counter > downsample_until_frame_number:
