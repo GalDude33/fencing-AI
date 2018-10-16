@@ -47,10 +47,7 @@ class VideoRecorder:
         for _ in range(start_pos, end_pos, step):
             frame = cap.read()
             self.record_frame(frame)
-
-            # skip (step - 1) frames
-            for _ in range(step - 1):
-                _ = cap.read()
+            cap.skip(step - 1)
 
     def close(self):
         self.proc.stdin.close()
@@ -76,11 +73,27 @@ class HitChecker:
         self.red_box = cv2.imread("redbox.png")
         self.white_box = cv2.imread("whitebox.png")
 
+    def check_green(self, frame):
+        return np.sum(abs(frame[330:334, 380:500].astype(int) - self.green_box.astype(int))) <= 40000
+
+    def check_red(self, frame):
+        return np.sum(abs(frame[330:334, 140:260].astype(int) - self.red_box.astype(int))) <= 40000
+
+    def check_left_white(self, frame):
+        return np.sum(abs(frame[337:348, 234:250].astype(int) - self.white_box.astype(int))) <= 7000
+
+    def check_right_white(self, frame):
+        return np.sum(abs(frame[337:348, 390:406].astype(int) - self.white_box.astype(int))) <= 7000
+
     def check(self, frame):
-        return (np.sum(abs(frame[337:348, 234:250].astype(int) - self.white_box.astype(int))) <= 7000) or \
-               (np.sum(abs(frame[337:348, 390:406].astype(int) - self.white_box.astype(int))) <= 7000) or \
-               (np.sum(abs(frame[330:334, 380:500].astype(int) - self.green_box.astype(int))) <= 40000) or \
-               (np.sum(abs(frame[330:334, 140:260].astype(int) - self.red_box.astype(int))) <= 40000)
+        return self.check_left_white(frame) or \
+               self.check_right_white(frame) or \
+               self.check_green(frame) or \
+               self.check_red(frame)
+
+    def get(self, frame):
+        # TODO: Something
+        pass
 
 
 class CV2VideoCapture:
@@ -101,9 +114,16 @@ class CV2VideoCapture:
         ret, frame = self.cap.read()
 
         if ret == False:
-            raise Exception("Couldn't read frame")
+            if self.get_position() >= self.__len__() - 1:
+                return None
+            else:
+                raise Exception("Couldn't read frame")
 
         return frame
+
+    def skip(self, n) -> None:
+        for _ in range(n):
+            self.cap.read()
 
     def __del__(self):
         self.cap.release()
@@ -137,6 +157,26 @@ def find_hit_end(cap: CV2VideoCapture):
     return -1
 
 
+def get_scores(frame):
+    left_score = getDigit(frame[309:325, 265:285])
+    right_score = getDigit(frame[309:325, 355:375])
+    # print(left_score, right_score)
+    return left_score, right_score
+
+
+def find_score_change(cap: CV2VideoCapture, step=5):
+    frame = cap.read()
+    orig_left_score, orig_right_score = get_scores(frame)
+    while cap.get_position() < cap.__len__():
+        frame = cap.read()
+        left_score, right_score = get_scores(frame)
+        if left_score != orig_left_score or right_score != orig_right_score:
+            return cap.get_position(), left_score, right_score
+        cap.skip(step - 1)
+
+    return -1
+
+
 already_processed = 0
 for vid in sorted(glob.glob(os.getcwd() + "/precut/" + "*.mp4"), key=lambda x: int(Path(x).stem)):
     if int(Path(vid).stem) >= already_processed:
@@ -153,13 +193,14 @@ for vid in sorted(glob.glob(os.getcwd() + "/precut/" + "*.mp4"), key=lambda x: i
             if hit_pos == -1:
                 break
 
+            # TODO: Figure out the score and put in file name
+
             with VideoRecorder('videos/' + Path(vid).stem + "-" + str(clips_recorded) + '.mp4') as vid_rec:
                 clips_recorded += 1
-                vid_rec.record_video(cap, start_pos=hit_pos - 50, end_pos=hit_pos+10, step=1)
+                vid_rec.record_video(cap, start_pos=hit_pos - 50, end_pos=hit_pos + 10, step=1)
 
             cap.set_position(hit_pos)
-            hit_end = find_hit_end(cap)
+            hit_end = find_hit_position(cap)
             if hit_end == -1:
                 break
-
             cap.set_position(hit_end)
