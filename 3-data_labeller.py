@@ -3,8 +3,10 @@
 ## as it doesn't provide as any more information. 
 
 import cv2
+import os
 from pylab import *
 from DigitRecognizer import getDigit
+from PIL import Image
 
 
 green_box = cv2.imread("greenbox.png")
@@ -50,6 +52,7 @@ def check_score(frame):
 
 def caption(hit_type,left,right,update_left,update_right):
     caption = "None"
+
     if hit_type == "On-On":
         if update_left-left == 1 and update_right-right == 0:
             caption = "L"
@@ -60,12 +63,12 @@ def caption(hit_type,left,right,update_left,update_right):
     if hit_type == "On-Off":
         if update_left-left == 1 and update_right-right == 0:
             caption = "L"
-        if update_left-left == 0 and update_right-right == 0:
+        if update_left-left == 0 and update_right-right == 0:#CHECK
             caption = "R"
     if hit_type == "Off-On":
         if update_left-left == 0 and update_right-right == 1:
             caption = "R"
-        if update_left-left == 0 and update_right-right == 0:
+        if update_left-left == 0 and update_right-right == 0:#CHECK
             caption = "L"
             
     return caption
@@ -81,35 +84,32 @@ for i in os.listdir(os.getcwd() + "/videos"):
         cap = cv2.VideoCapture("videos/" + i)
         cap_end_point = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         cap.set(cv2.CAP_PROP_POS_FRAMES, cap_end_point-1)
-        ret,frame = cap.read()
-        hit_type = check_lights(frame)
-        left,right = check_score(frame)
-        print(hit_type)
-        print(left,right)
-        
-        cap.release()
+        ret, frame = cap.read()
+        if frame is not None:
+            hit_type = check_lights(frame)
+            left, right = check_score(frame)
+            print(hit_type)
+            print(left, right)
 
-        if hit_type == "On-On" or hit_type == "On-Off" or hit_type == "Off-On":
-        #### now open the following hit
-            next_hit = "videos/" + str(match_number) + "-" + str(hit_number+1) + ".mp4"
-            if os.path.isfile(next_hit) == True:
-                # open the next hit
-                cap = cv2.VideoCapture(next_hit)
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                ret,frame = cap.read()
-                update_left,update_right = check_score(frame)
-                cap.release()
-                priority = caption(hit_type,left,right,update_left,update_right)
-                print(update_left, update_right)
-                
-                print(priority)
-                if priority != 'None':
-                    os.rename("videos/"+ i, "training_quarantine/"+priority+i)
-                print(" ")
+            cap.release()
 
-        continue
-    else:
-        continue
+            if hit_type == "On-On" or hit_type == "On-Off" or hit_type == "Off-On":
+            #### now open the following hit
+                next_hit = "videos/" + str(match_number) + "-" + str(hit_number+1) + ".mp4"
+                if os.path.isfile(next_hit) == True:
+                    # open the next hit
+                    cap = cv2.VideoCapture(next_hit)
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    ret, frame = cap.read()
+                    if frame is not None:
+                        update_left, update_right = check_score(frame)
+                        cap.release()
+                        priority = caption(hit_type, left, right, update_left, update_right)
+                        print(update_left, update_right)
 
+                        print(priority)
+                        if priority != 'None':
+                            os.rename("videos/"+ i, "training_quarantine/"+priority+i)
+                        print(" ")
 
 # And we're done, data collected!
