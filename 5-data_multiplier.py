@@ -3,12 +3,13 @@ from builtins import str
 
 import cv2
 from pylab import *
-
-FFMPEG_BIN = "ffmpeg"
 import subprocess as sp
 import os
-fps = str(13)
+from PIL import Image
 
+
+FFMPEG_BIN = "ffmpeg"
+fps = str(13)
 
 ######################### Here we flip every video horizontally, and double our training set! ########################
 for i in os.listdir(os.getcwd() + "/training_quarantine"):
@@ -19,8 +20,7 @@ for i in os.listdir(os.getcwd() + "/training_quarantine"):
         elif i[0] == 'R':
             i = 'L'+ i.lstrip('R')
 
-        output_file = 'more_training_data/' + str(i).replace('.mp4', '-flipped') + '.mp4' 
-            # clips_recorded = clips_recorded+1
+        output_file = 'more_training_data/' + str(i).replace('.mp4', '-flipped') + '.mp4'
         cap.set(cv2.CAP_PROP_FPS, 10000)
         command = [FFMPEG_BIN,
         '-y',
@@ -35,9 +35,8 @@ for i in os.listdir(os.getcwd() + "/training_quarantine"):
         '-b:v', '5000k',
         output_file ]
 
-            # this is how long our video will be.
-        
-            
+        # this is how long our video will be.
+
         proc = sp.Popen(command, stdin=sp.PIPE, stderr=sp.PIPE)
         print("more diagnostics")
             
@@ -46,18 +45,13 @@ for i in os.listdir(os.getcwd() + "/training_quarantine"):
         while(cap.isOpened()):
             ret, frame = cap.read()
             counter = counter + 1
-            if ret==True:
-
-#flip the frame horizontally
-                frame = cv2.flip(frame,1)
+            if ret:
+                #flip the frame horizontally
+                frame = cv2.flip(frame, 1)
                 proc.stdin.write(frame.tostring())
-        
-
-    
             else:
                 break
-                
-                
+
         proc.stdin.close()
         print("stderr")
         proc.stderr.close()
@@ -67,4 +61,3 @@ for i in os.listdir(os.getcwd() + "/training_quarantine"):
         cap.release()
 
 ############################################################################################################################
-        
