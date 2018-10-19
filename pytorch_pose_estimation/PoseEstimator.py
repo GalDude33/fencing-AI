@@ -17,8 +17,8 @@ import torchvision.models as models
 
 from torch.autograd import Variable
 
-from utils import *
-from pose_estimation import *
+from pytorch_pose_estimation.utils import *
+from pytorch_pose_estimation.pose_estimation import *
 from scipy.ndimage.filters import gaussian_filter
 
 #%matplotlib inline

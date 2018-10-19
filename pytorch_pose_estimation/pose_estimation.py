@@ -8,10 +8,9 @@ import math
 import torch
 import torch.nn as nn
 
-from torch import np
 from torch.autograd import Variable
 
-from utils import *
+from pytorch_pose_estimation.utils import *
 from scipy.ndimage.filters import gaussian_filter
 
 # find connection in the specified sequence, center 29 is in the position 15
