@@ -237,7 +237,7 @@ def extract_paf_info(img_raw, paf_avg, all_peaks, param_thre2=0.05, param_thre3=
             for i in range(nA):
                 for j in range(nB):
                     vec = np.subtract(candB[j][:2], candA[i][:2])
-                    norm = math.sqrt(vec[0] * vec[0] + vec[1] * vec[1])
+                    norm = math.sqrt(vec[0] * vec[0] + vec[1] * vec[1])+1e-8
                     vec = np.divide(vec, norm)
 
                     startend = zip(np.linspace(candA[i][0], candB[j][0], num=mid_num),

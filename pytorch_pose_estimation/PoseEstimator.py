@@ -3,6 +3,7 @@ import torch.backends.cudnn as cudnn
 import torch.nn.parallel
 
 from pytorch_pose_estimation.pose_estimation import *
+from fast_clip_cutter_gal import CV2VideoCapture
 
 
 class PoseEstimator:
@@ -29,8 +30,12 @@ class PoseEstimator:
 
 
 
-    def getPoseEstimationImg(self, imgPath):
+    def getPoseEstimationImgByPath(self, imgPath):
         img_ori = cv2.imread(imgPath) # B,G,R order
+        self.getPoseEstimationImgByArr(img_ori)
+
+
+    def getPoseEstimationImgByArr(self, img_ori):
         paf_info, heatmap_info = get_paf_and_heatmap(self.model_pose, img_ori, self.scale_param)
         peaks = extract_heatmap_info(heatmap_info)
         sp_k, con_all = extract_paf_info(img_ori, paf_info, peaks)
@@ -48,5 +53,12 @@ class PoseEstimator:
         plt.show()
 
 
+#videoCapture = CV2VideoCapture('/media/rabkinda/Gal_Backup/fencing/fencing-AI/precut/yfTCxEAUWYI.mp4')
+#videoCapture.set_position(6660)#3.42*30)
+#frame = videoCapture.read()
+#plt.figure(figsize=(12, 8))
+#plt.imshow(frame[...,::-1])
+#plt.show()
+
 #poseEstimator = PoseEstimator()
-#poseEstimator.getPoseEstimationImg('/media/rabkinda/Gal_Backup/fencing/fencing-AI/img2.jpg')
+#poseEstimator.getPoseEstimationImgByArr(frame)#'/media/rabkinda/Gal_Backup/fencing/fencing-AI/img2.jpg')
