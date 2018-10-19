@@ -45,3 +45,8 @@ class PoseEstimator:
 
         plt.subplot(1, 2, 2)
         plt.imshow(img_canvas[..., ::-1])
+        plt.show()
+
+
+#poseEstimator = PoseEstimator()
+#poseEstimator.getPoseEstimationImg('/media/rabkinda/Gal_Backup/fencing/fencing-AI/img2.jpg')
