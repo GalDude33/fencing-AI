@@ -1,3 +1,5 @@
+import glob
+
 from pytube import YouTube
 import os
 
@@ -43,21 +45,26 @@ vids = text_file.readlines()
 print("First 3 links:", vids[:3])
 text_file.close()
 
+
+# alredy_downloaded = []
+# with open('/home/galdude33/console_output_vids', 'r') as f:
+#     for line in f:
+#         if 'Downloaded' in line:
+#             alredy_downloaded.append(line.split()[1])
+alredy_downloaded = [_.strip().split('/')[-1].split('.')[0] for _ in glob.glob(os.getcwd() + '/precut/*.mp4')]
+
 # Loop through all the videos, download them and put them in the precut folder.
-counter = 0
-vids = vids[counter:]
-for i in vids:
+for i in (_ for _ in vids if _.strip().split('v=')[-1] not in alredy_downloaded):
     try:
-        with Timeout(600):
+        with Timeout(1200):
             start = time.time()
             yt = YouTube(i)
             stream = yt.streams. \
                 filter(progressive=True,
                        file_extension='mp4',
-                       resolution='360p').first()
-            stream.download(os.getcwd() + '/precut/', str(counter))
+                       resolution='720p').first()
+            stream.download(os.getcwd() + '/precut/', i.strip().split('v=')[-1])
             print("Downloaded: ", i.strip(), "   ", (time.time() - start), "s")
     except:
         traceback.print_exc()
         print("Failed-", i)
-    counter = counter + 1

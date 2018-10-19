@@ -145,8 +145,9 @@ class CV2VideoCapture:
 
         return frame
 
-    def skip(self, n) -> None:
+    def skip(self, n):
         self.set_position(self.get_position()+n)
+        return self
 
     def __del__(self):
         self.cap.release()
@@ -253,7 +254,7 @@ def check_lights(frame):
 
 def get_caption_from_video(cap):
     orig_pos = cap.get_position()
-    orig_frame = cap.read()
+    orig_frame = cap.skip(30).read()
 
     # find next hit
     hit_end_pos = find_hit_end(cap)
@@ -265,14 +266,16 @@ def get_caption_from_video(cap):
     prev_l_score, prev_r_score = get_scores(orig_frame)
     score_changed_pos, l_score, r_score = find_score_change(cap, 15)
 
-    if score_changed_pos > next_hit_pos: # score didn't changed
+    if score_changed_pos == -1 or score_changed_pos > next_hit_pos: # score didn't changed
         l_score, r_score = prev_l_score, prev_r_score
 
     if l_score - prev_l_score > 1 or r_score - prev_r_score > 1:
-        pass
+        raise Exception("Missed score")
 
     cap.set_position(orig_pos)
     hit_type = check_lights(orig_frame)
+    if hit_type=="No-No":
+        raise Exception("got No-No")
 
     if hit_type == "On-On" or hit_type == "On-Off" or hit_type == "Off-On":
         return caption(hit_type, prev_l_score, prev_r_score, l_score, r_score)
@@ -280,32 +283,33 @@ def get_caption_from_video(cap):
         return None
 
 
-already_processed = 0
-for vid in sorted(glob.glob(os.getcwd() + "/precut/" + "*.mp4"), key=lambda x: int(Path(x).stem)):
-    if int(Path(vid).stem) >= already_processed:
-        print("Video:", vid)
-        clips_recorded = 0
+# already_processed = 0
+# for vid in sorted(glob.glob(os.getcwd() + "/precut/" + "*.mp4"), key=lambda x: int(Path(x).stem)):
+#     if int(Path(vid).stem) >= already_processed:
+for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
+    print("Video:", vid)
+    clips_recorded = 0
 
-        cap = CV2VideoCapture(str(vid))
-        fps = cap.get_fps()
-        print("Length of Vid:", cap.__len__())
+    cap = CV2VideoCapture(str(vid))
+    fps = cap.get_fps()
+    print("Length of Vid:", cap.__len__())
 
-        while cap.get_position() <= cap.__len__():
-            print(cap.get_position(), "big while loop", cap.__len__())
-            hit_pos = find_hit_position(cap)
-            if hit_pos == -1:
-                break
+    while cap.get_position() <= cap.__len__():
+        print(cap.get_position(), "big while loop", cap.__len__())
+        hit_pos = find_hit_position(cap)
+        if hit_pos == -1:
+            break
 
-            cap.set_position(hit_pos)
-            label = str(get_caption_from_video(cap))
+        cap.set_position(hit_pos) # more 1/2sec for caution (maybe second light is in delay)
+        label = str(get_caption_from_video(cap))
 
-            #with VideoRecorder('videos/' + Path(vid).stem + "-" + str(clips_recorded) + "-" + label + '.mp4') as vid_rec:
-            ffmpeg_extract_subclip(vid, t1=(hit_pos - 50)/fps, n_frames=60, targetname='videos/' + Path(vid).stem + "-" + str(clips_recorded) + "-" + label + '.mp4')
-            clips_recorded += 1
-            #    vid_rec.record_video(cap, start_pos=hit_pos - 50, end_pos=hit_pos + 10, step=1)
+        #with VideoRecorder('videos/' + Path(vid).stem + "-" + str(clips_recorded) + "-" + label + '.mp4') as vid_rec:
+        ffmpeg_extract_subclip(vid, t1=(hit_pos - 50)/fps, n_frames=60, targetname='videos/' + Path(vid).stem + "-" + str(clips_recorded) + "-" + label + '.mp4')
+        clips_recorded += 1
+        #    vid_rec.record_video(cap, start_pos=hit_pos - 50, end_pos=hit_pos + 10, step=1)
 
-            cap.set_position(hit_pos)
-            hit_end = find_hit_end(cap)
-            if hit_end == -1:
-                break
-            cap.set_position(hit_end)
+        cap.set_position(hit_pos)
+        hit_end = find_hit_end(cap)
+        if hit_end == -1:
+            break
+        cap.set_position(hit_end)
