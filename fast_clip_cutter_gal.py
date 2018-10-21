@@ -18,14 +18,24 @@ print("Cutting", videos_to_cut, "videos")
 def ffmpeg_extract_subclip(filename, t1, n_frames, targetname=None):
     """ Makes a new video file playing video file ``filename`` between
         the times ``t1`` and ``t2``. """
-    cmd = ['ffmpeg', "-y",
+    cmd = ["ffmpeg", "-y",
            "-i", filename,
+           "-strict -2",
            "-ss", "%0.3f" % t1,
            "-frames:v", "%d" % n_frames,
            targetname]
 
-    with open(os.devnull, "w") as f:
-        sp.Popen(cmd, stdout=f, stderr=f)
+    # with open(os.devnull, "w") as f:
+    #     sp.Popen(cmd, stdout=f, stderr=f)
+
+    cmd = sp.Popen(' '.join(cmd), stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
+    out, err = cmd.communicate()
+
+    if cmd.returncode == 0:
+        print("Job done.")
+    else:
+        print("ERROR")
+        print(err)
 
 
 class VideoRecorder:
