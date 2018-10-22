@@ -11,7 +11,7 @@ class PoseEstimator:
     def __init__(self):
         self.use_gpu = True
         self.model_pose = self.loadPoseEstimationNet()
-        self.scale_param = [0.5, 1.0, 1.5, 2.0]
+        self.scale_param = [0.5, 1.0, 1.5]#, 2.0]
 
 
     def loadPoseEstimationNet(self):
