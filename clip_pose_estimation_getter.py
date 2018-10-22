@@ -24,6 +24,7 @@ for vid in glob.glob(os.getcwd() + "/videos/" + "*.mp4"):
 
         while frame is not None:
             curr_frame_pose_arr = poseEstimator.getPoseEstimationCoordinatesByArr(frame)
+            #poseEstimator.getPoseEstimationImgFromCoordinatesByArr(frame, curr_frame_pose_arr)
             clip_pose_dict[str(frame_ind)] = curr_frame_pose_arr
             frame = cap.read()
             frame_ind += 1

@@ -62,8 +62,8 @@ class PoseEstimatorOfficial:
         param = {'thre1': 0.1, 'thre2': 0.05, 'thre3': 0.5}
         coords_arr = get_pose(oriImg, param, heatmap, paf)
 
-        # filter 2 persons which have more recognized limbs, meaning have less -1 coordinates
-        fencing_players_ind = np.argsort(np.array([np.sum(person_coords == -1.) for person_coords in coords_arr]))[:2]
+        # filter 2 players which have larger distances among limbs
+        fencing_players_ind = np.argsort(np.mean(np.mean(np.abs(coords_arr[:,:,0]-coords_arr[:,:,1]), 1), 1))[-2:]
         fencing_players_coords = coords_arr[fencing_players_ind]
 
         #verify left, right side of players
