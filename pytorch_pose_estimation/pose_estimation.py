@@ -179,10 +179,10 @@ def get_paf_and_heatmap(model, img_raw, scale_search, param_stride=8, box_size=3
         heatmap_avg[i] = heatmap[0].data
         paf_avg[i] = paf[0].data
 
-    heatmap_avg = torch.transpose(torch.transpose(torch.squeeze(torch.mean(heatmap_avg, 0)), 0, 1), 1, 2).cuda()
+    heatmap_avg = torch.transpose(torch.transpose(torch.squeeze(torch.mean(heatmap_avg, 0)), 0, 1), 1, 2)#.cuda()
     heatmap_avg = heatmap_avg.cpu().numpy()
 
-    paf_avg = torch.transpose(torch.transpose(torch.squeeze(torch.mean(paf_avg, 0)), 0, 1), 1, 2).cuda()
+    paf_avg = torch.transpose(torch.transpose(torch.squeeze(torch.mean(paf_avg, 0)), 0, 1), 1, 2)#.cuda()
     paf_avg = paf_avg.cpu().numpy()
 
     return paf_avg, heatmap_avg
