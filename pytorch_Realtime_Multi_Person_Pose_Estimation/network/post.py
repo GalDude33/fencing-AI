@@ -431,3 +431,52 @@ def decode_pose(img_orig, param, heatmaps, pafs):
     to_plot, canvas = plot_pose(img_orig, joint_list, person_to_joint_assoc)
 
     return to_plot, canvas, joint_list, person_to_joint_assoc
+
+
+def get_pose(img_orig, param, heatmaps, pafs):
+    # Bottom-up approach:
+    # Step 1: find all joints in the image (organized by joint type: [0]=nose,
+    # [1]=neck...)
+    joint_list_per_joint_type = NMS(param,
+                                    heatmaps, img_orig.shape[0] / float(heatmaps.shape[0]))
+    # joint_list is an unravel'd version of joint_list_per_joint, where we add
+    # a 5th column to indicate the joint_type (0=nose, 1=neck...)
+    joint_list = np.array([tuple(peak) + (joint_type,) for joint_type,
+                           joint_peaks in enumerate(joint_list_per_joint_type) for peak in joint_peaks])
+
+    # Step 2: find which joints go together to form limbs (which wrists go
+    # with which elbows)
+    paf_upsamp = cv2.resize(
+        pafs, (img_orig.shape[1], img_orig.shape[0]), interpolation=cv2.INTER_CUBIC)
+    connected_limbs = find_connected_joints(param,
+                                            paf_upsamp, joint_list_per_joint_type)
+
+    # Step 3: associate limbs that belong to the same person
+    person_to_joint_assoc = group_limbs_of_same_person(
+        connected_limbs, joint_list)
+
+    # (Step 4): get results
+    coords_arr = get_pose_coordinates(joint_list, person_to_joint_assoc)
+
+    return coords_arr
+
+
+def get_pose_coordinates(joint_list, person_to_joint_assoc):
+
+    which_limbs_to_plot = NUM_LIMBS - 2
+    coords_arr = np.zeros((person_to_joint_assoc.shape[0], which_limbs_to_plot, 2, 2))
+
+    for limb_type in range(which_limbs_to_plot):
+        for person_ind, person_joint_info in enumerate(person_to_joint_assoc):
+            joint_indices = person_joint_info[joint_to_limb_heatmap_relationship[limb_type]].astype(int)
+            if -1 in joint_indices:
+                # Only draw actual limbs (connected joints), skip if not
+                # connected
+                coords_arr[person_ind, limb_type] = np.array([[-1., -1.], [-1., -1.]])
+                continue
+            # joint_coords[:,0] represents Y coords of both joints;
+            # joint_coords[:,1], X coords
+            joint_coords = joint_list[joint_indices, 0:2]
+            coords_arr[person_ind, limb_type] = joint_coords
+
+    return coords_arr
