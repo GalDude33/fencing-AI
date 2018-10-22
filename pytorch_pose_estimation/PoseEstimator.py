@@ -3,7 +3,6 @@ import torch.backends.cudnn as cudnn
 import torch.nn.parallel
 
 from pytorch_pose_estimation.pose_estimation import *
-from fast_clip_cutter_gal import CV2VideoCapture
 from PIL import Image
 
 
