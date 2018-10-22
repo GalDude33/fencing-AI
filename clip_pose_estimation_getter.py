@@ -3,11 +3,13 @@
 import glob
 import ntpath
 import os
+import pickle
+from PoseEstimatorOfficial import PoseEstimatorOfficial
 from VideoUtils import CV2VideoCapture
-from pytorch_pose_estimation.PoseEstimator import PoseEstimator
+from PIL import Image
 
 
-poseEstimator = PoseEstimator()
+poseEstimator = PoseEstimatorOfficial(weights_path='./pytorch_Realtime_Multi_Person_Pose_Estimation/network/weight/pose_model.pth')
 
 for vid in glob.glob(os.getcwd() + "/videos/" + "*.mp4"):
     videoName = os.path.splitext(ntpath.basename(vid))[0]
@@ -16,7 +18,16 @@ for vid in glob.glob(os.getcwd() + "/videos/" + "*.mp4"):
         print('processing clip ' + videoName)
         cap = CV2VideoCapture(vid)
 
+        clip_pose_dict = {}
         frame = cap.read()
+        frame_ind = 0
+
         while frame is not None:
             curr_frame_pose_arr = poseEstimator.getPoseEstimationCoordinatesByArr(frame)
+            clip_pose_dict[str(frame_ind)] = curr_frame_pose_arr
             frame = cap.read()
+            frame_ind += 1
+
+        output_path = vid.replace('videos', 'pose_estimations').replace('mp4', 'pickle')
+        with open(output_path, 'wb') as handle:
+            pickle.dump(clip_pose_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
