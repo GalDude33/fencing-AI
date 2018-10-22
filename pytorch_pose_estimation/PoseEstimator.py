@@ -15,7 +15,7 @@ class PoseEstimator:
 
 
     def loadPoseEstimationNet(self):
-        state_dict = torch.load('./models/coco_pose_iter_440000.pth.tar')['state_dict']
+        state_dict = torch.load('./pytorch_pose_estimation/models/coco_pose_iter_440000.pth.tar')['state_dict']
         model_pose = get_pose_model()
         model_pose.load_state_dict(state_dict)
         model_pose.float()
