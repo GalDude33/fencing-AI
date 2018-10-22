@@ -1,6 +1,7 @@
 # Cuts the videos into a set of short clips where each actual hit happens. These clips are used by the data_labeller to
 # label the clips where the referee had to distinguish whos priority.
 import glob
+import os
 import ntpath
 from pathlib import Path
 from pylab import *
