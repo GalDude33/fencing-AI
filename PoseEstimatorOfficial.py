@@ -66,6 +66,13 @@ class PoseEstimatorOfficial:
         fencing_players_ind = np.argsort(np.array([np.sum(person_coords == -1.) for person_coords in coords_arr]))[:2]
         fencing_players_coords = coords_arr[fencing_players_ind]
 
+        #verify left, right side of players
+        first_player_x_mean = np.mean(fencing_players_coords[0, :, :, 0])
+        second_player_x_mean = np.mean(fencing_players_coords[1, :, :, 0])
+
+        if first_player_x_mean>second_player_x_mean:
+            fencing_players_coords = fencing_players_coords[::-1]
+
         return fencing_players_coords
 
 
