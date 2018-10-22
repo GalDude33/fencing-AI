@@ -1,7 +1,7 @@
 import torch.nn.parallel
 from pytorch_Realtime_Multi_Person_Pose_Estimation.evaluate.coco_eval import get_multiplier, get_outputs, handle_paf_and_heat
 from pytorch_Realtime_Multi_Person_Pose_Estimation.network.rtpose_vgg import get_model
-from pytorch_Realtime_Multi_Person_Pose_Estimation.network.post import decode_pose, get_pose
+from pytorch_Realtime_Multi_Person_Pose_Estimation.network.post import decode_pose, get_pose, plot_from_pose_coords
 from PIL import Image
 import cv2
 import numpy as np
@@ -74,6 +74,11 @@ class PoseEstimatorOfficial:
             fencing_players_coords = fencing_players_coords[::-1]
 
         return fencing_players_coords
+
+
+    def getPoseEstimationImgFromCoordinatesByArr(self, oriImg, coords_arr):
+        canvas, to_plot = plot_from_pose_coords(oriImg, coords_arr)
+        cv2.imwrite('result.png', to_plot)
 
 
 # videoCapture = CV2VideoCapture('/media/rabkinda/Gal_Backup/fencing/fencing-AI/precut/yfTCxEAUWYI.mp4')
