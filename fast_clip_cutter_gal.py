@@ -19,7 +19,7 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
     video_num += 1
     print('processing video '+ str(video_num))
 
-    if np.sum([videoName in s for s in already_processed_videos])>20 and videoName == 'gir5-NQivzw':
+    if np.sum([videoName in s for s in already_processed_videos])>20 or videoName == 'gir5-NQivzw':
         continue
 
     print("Video:", vid)
