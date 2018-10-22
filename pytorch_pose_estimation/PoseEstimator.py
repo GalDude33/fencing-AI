@@ -4,6 +4,7 @@ import torch.nn.parallel
 
 from pytorch_pose_estimation.pose_estimation import *
 from fast_clip_cutter_gal import CV2VideoCapture
+from PIL import Image
 
 
 class PoseEstimator:
@@ -32,7 +33,7 @@ class PoseEstimator:
 
     def getPoseEstimationImgByPath(self, imgPath):
         img_ori = cv2.imread(imgPath) # B,G,R order
-        self.getPoseEstimationImgByArr(img_ori)
+        self.getPoseEstimationImgByArr(img_ori)#[100:-100,200:-200])#TODO- DELETE!!
 
 
     def getPoseEstimationImgByArr(self, img_ori):
@@ -53,12 +54,31 @@ class PoseEstimator:
         plt.show()
 
 
-#videoCapture = CV2VideoCapture('/media/rabkinda/Gal_Backup/fencing/fencing-AI/precut/yfTCxEAUWYI.mp4')
-#videoCapture.set_position(6660)#3.42*30)
-#frame = videoCapture.read()
-#plt.figure(figsize=(12, 8))
-#plt.imshow(frame[...,::-1])
-#plt.show()
+    def getPoseEstimationCoordinatesByPath(self, imgPath):
+        img_ori = cv2.imread(imgPath) # B,G,R order
+        return self.getPoseEstimationCoordinatesByArr(img_ori)#[100:-100,200:-200])#TODO- DELETE!!
+
+
+    def getPoseEstimationCoordinatesByArr(self, img_ori):
+        paf_info, heatmap_info = get_paf_and_heatmap(self.model_pose, img_ori, self.scale_param)
+        peaks = extract_heatmap_info(heatmap_info)
+        #sp_k, con_all = extract_paf_info(img_ori, paf_info, peaks)
+        #subsets, candidates = get_subsets(con_all, sp_k, peaks)
+        descriptor_vector = []
+
+        for i in range(18):
+            for j in range(len(peaks[i])):
+                descriptor_vector.append(peaks[i][j][0:2])
+
+        return descriptor_vector
+
+
+# videoCapture = CV2VideoCapture('/media/rabkinda/Gal_Backup/fencing/fencing-AI/precut/yfTCxEAUWYI.mp4')
+# videoCapture.set_position(6660)#3.42*30)
+# frame = videoCapture.read()
+# plt.figure(figsize=(12, 8))
+# plt.imshow(frame[...,::-1])
+# plt.show()
 
 #poseEstimator = PoseEstimator()
-#poseEstimator.getPoseEstimationImgByArr(frame)#'/media/rabkinda/Gal_Backup/fencing/fencing-AI/img2.jpg')
+#poseEstimator.getPoseEstimationCoordinatesByPath('/media/rabkinda/Gal_Backup/fencing/fencing-AI/img2.jpg')
