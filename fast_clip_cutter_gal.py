@@ -10,6 +10,8 @@ from pathlib import Path
 from DigitRecognizer import getDigit
 from PIL import Image
 from skimage import transform
+import ntpath
+
 
 videos_to_cut = glob.glob(os.getcwd() + "/precut/" + "*.mp4").__len__()
 print("Cutting", videos_to_cut, "videos")
@@ -296,7 +298,18 @@ def get_caption_from_video(cap):
 # already_processed = 0
 # for vid in sorted(glob.glob(os.getcwd() + "/precut/" + "*.mp4"), key=lambda x: int(Path(x).stem)):
 #     if int(Path(vid).stem) >= already_processed:
+
+already_processed_videos = [os.path.splitext(ntpath.basename(vid))[0] for vid in glob.glob(os.getcwd() + "/videos/" + "*.mp4")]
+video_num = 0
+
 for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
+    videoName = os.path.splitext(ntpath.basename(vid))[0]
+    video_num += 1
+    print('processing video '+ str(video_num))
+
+    if any(videoName in s for s in already_processed_videos):
+        continue
+
     print("Video:", vid)
     clips_recorded = 0
 
