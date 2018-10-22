@@ -1,33 +1,20 @@
-import matplotlib.pyplot as plt
-import torch.backends.cudnn as cudnn
 import torch.nn.parallel
-
-from pytorch_pose_estimation.pose_estimation import *
+from pytorch_Realtime_Multi_Person_Pose_Estimation.evaluate.coco_eval import get_multiplier, get_outputs, handle_paf_and_heat
+from pytorch_Realtime_Multi_Person_Pose_Estimation.network.rtpose_vgg import get_model
+from pytorch_Realtime_Multi_Person_Pose_Estimation.network.post import decode_pose
 from PIL import Image
+import cv2
 
 
-class PoseEstimator:
+class PoseEstimatorOfficial:
 
     def __init__(self):
-        self.use_gpu = True
-        self.model_pose = self.loadPoseEstimationNet()
-        self.scale_param = [0.5, 1.0, 1.5]#, 2.0]
-
-
-    def loadPoseEstimationNet(self):
-        state_dict = torch.load('./models/coco_pose_iter_440000.pth.tar')['state_dict']
-        model_pose = get_pose_model()
-        model_pose.load_state_dict(state_dict)
-        model_pose.float()
-        model_pose.eval()
-
-        if self.use_gpu:
-            model_pose.cuda()
-            model_pose = torch.nn.DataParallel(model_pose, device_ids=range(torch.cuda.device_count()))
-            cudnn.benchmark = True
-
-        return model_pose
-
+        weight_name = '../network/weight/pose_model.pth'
+        self.model = get_model('vgg19')
+        self.model.load_state_dict(torch.load(weight_name))
+        self.model = torch.nn.DataParallel(self.model).cuda()
+        self.model.float()
+        self.model.eval()
 
 
     def getPoseEstimationImgByPath(self, imgPath):
@@ -35,22 +22,27 @@ class PoseEstimator:
         self.getPoseEstimationImgByArr(img_ori)#[100:-100,200:-200])#TODO- DELETE!!
 
 
-    def getPoseEstimationImgByArr(self, img_ori):
-        paf_info, heatmap_info = get_paf_and_heatmap(self.model_pose, img_ori, self.scale_param)
-        peaks = extract_heatmap_info(heatmap_info)
-        sp_k, con_all = extract_paf_info(img_ori, paf_info, peaks)
-        subsets, candidates = get_subsets(con_all, sp_k, peaks)
-        subsets, img_points = draw_key_point(subsets, peaks, img_ori)
-        img_canvas = link_key_point(img_points, candidates, subsets)
+    def getPoseEstimationImgByArr(self, oriImg):
+        multiplier = get_multiplier(oriImg)
 
-        plt.figure(figsize=(12, 8))
+        with torch.no_grad():
+            orig_paf, orig_heat = get_outputs(
+                multiplier, oriImg, self.model, 'rtpose')
 
-        plt.subplot(1, 2, 1)
-        plt.imshow(img_points[..., ::-1])
+            # Get results of flipped image
+            swapped_img = oriImg[:, ::-1, :]
+            flipped_paf, flipped_heat = get_outputs(multiplier, swapped_img,
+                                                    self.model, 'rtpose')
 
-        plt.subplot(1, 2, 2)
-        plt.imshow(img_canvas[..., ::-1])
-        plt.show()
+            # compute averaged heatmap and paf
+            paf, heatmap = handle_paf_and_heat(
+                orig_heat, flipped_heat, orig_paf, flipped_paf)
+
+        param = {'thre1': 0.1, 'thre2': 0.05, 'thre3': 0.5}
+        canvas, to_plot, candidate, subset = decode_pose(
+            oriImg, param, heatmap, paf)
+
+        cv2.imwrite('result.png', to_plot)
 
 
     def getPoseEstimationCoordinatesByPath(self, imgPath):
@@ -58,18 +50,8 @@ class PoseEstimator:
         return self.getPoseEstimationCoordinatesByArr(img_ori)#[100:-100,200:-200])#TODO- DELETE!!
 
 
-    def getPoseEstimationCoordinatesByArr(self, img_ori):
-        paf_info, heatmap_info = get_paf_and_heatmap(self.model_pose, img_ori, self.scale_param)
-        peaks = extract_heatmap_info(heatmap_info)
-        #sp_k, con_all = extract_paf_info(img_ori, paf_info, peaks)
-        #subsets, candidates = get_subsets(con_all, sp_k, peaks)
-        descriptor_vector = []
-
-        for i in range(18):
-            for j in range(len(peaks[i])):
-                descriptor_vector.append(peaks[i][j][0:2])
-
-        return descriptor_vector
+    def getPoseEstimationCoordinatesByArr(self, oriImg):
+        return ''
 
 
 # videoCapture = CV2VideoCapture('/media/rabkinda/Gal_Backup/fencing/fencing-AI/precut/yfTCxEAUWYI.mp4')
@@ -79,5 +61,5 @@ class PoseEstimator:
 # plt.imshow(frame[...,::-1])
 # plt.show()
 
-poseEstimator = PoseEstimator()
+poseEstimator = PoseEstimatorOfficial()
 poseEstimator.getPoseEstimationImgByPath('/media/rabkinda/Gal_Backup/fencing/fencing-AI/img2.jpg')
