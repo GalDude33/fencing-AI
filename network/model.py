@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.autograd import Variable
 
 
@@ -18,8 +19,8 @@ class RNNUnit(nn.Module):
             self.input_size,
             self.rnn_size,
             self.num_layers,
-            bias=False)#,
-            #dropout=self.drop_prob_lm)
+            bias=False,
+            dropout=self.drop_prob_lm)
 
     def forward(self, x_t, state):
         output, state = self.rnn(x_t.unsqueeze(0), state)
@@ -31,39 +32,42 @@ class FencingModel(nn.Module):
     def __init__(self):
         super(FencingModel, self).__init__()
         self.core = RNNUnit()
+        output_size = 3
+        self.fc = nn.Linear(self.core.rnn_size, output_size)
 
 
     def init_hidden(self, batch_size):
         weight = next(self.parameters()).data
 
-        if self.rnn_type == 'lstm':
+        if self.core.rnn_type == 'lstm':
             return (
                 Variable(
                     weight.new(
-                        self.num_layers,
+                        self.core.num_layers,
                         batch_size,
-                        self.rnn_size).zero_()),
+                        self.core.rnn_size).zero_()),
                 Variable(
                     weight.new(
-                        self.num_layers,
+                        self.core.num_layers,
                         batch_size,
-                        self.rnn_size).zero_()))
+                        self.core.rnn_size).zero_()))
         else:
             return Variable(
                 weight.new(
-                    self.num_layers,
+                    self.core.num_layers,
                     batch_size,
-                    self.rnn_size).zero_())
+                    self.core.rnn_size).zero_())
 
 
     def forward(self, frames_pose_dict):
-        frames_num = len(frames_pose_dict[0].keys())
-        batch_size = len(frames_pose_dict)
+        frames_num = frames_pose_dict.shape[1]
+        batch_size = frames_pose_dict.shape[0]
         state = self.init_hidden(batch_size)
         output = None
 
         for frame_idx in range(0, frames_num):
-            curr_frame_pose = frames_pose_dict[str(frame_idx)]
+            curr_frame_pose = frames_pose_dict[:, frame_idx, :]
             output, state = self.core(curr_frame_pose, state)
 
-        return output
+        logprobs = F.log_softmax(self.fc(output), dim=1)
+        return logprobs
