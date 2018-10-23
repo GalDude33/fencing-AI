@@ -59,14 +59,14 @@ class FencingModel(nn.Module):
                     self.core.rnn_size).zero_())
 
 
-    def forward(self, frames_pose_dict):
-        frames_num = frames_pose_dict.shape[1]
-        batch_size = frames_pose_dict.shape[0]
+    def forward(self, frames_pose_tensor):
+        frames_num = frames_pose_tensor.shape[1]
+        batch_size = frames_pose_tensor.shape[0]
         state = self.init_hidden(batch_size)
         output = None
 
         for frame_idx in range(0, frames_num):
-            curr_frame_pose = frames_pose_dict[:, frame_idx, :]
+            curr_frame_pose = frames_pose_tensor[:, frame_idx, :]
             output, state = self.core(curr_frame_pose, state)
 
         logprobs = F.log_softmax(self.fc(output), dim=1)
