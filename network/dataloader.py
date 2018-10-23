@@ -1,5 +1,6 @@
 import random
 import numpy as np
+import torch
 import torch.utils.data as torchdata
 import glob
 import pickle
@@ -15,14 +16,22 @@ class Dataset(torchdata.Dataset):
 
         for descriptor_file in descriptor_files:
             with (open(descriptor_file, "rb")) as file:
-                self.objects.append((pickle.load(file), self.getLabelFromFilename(descriptor_file)))
+                ndarray_dict = pickle.load(file)
+                video_dsc = np.zeros((len(ndarray_dict), 2, 17, 2, 2))
+
+                for key in range(0, len(ndarray_dict)):
+                    video_dsc[key] = ndarray_dict[str(key)]
+
+                self.objects.append((torch.from_numpy(video_dsc), torch.from_numpy(self.getLabelFromFilename(descriptor_file))))
 
         if is_train:
             random.shuffle(self.objects)
 
 
     def __getitem__(self, index):
-        return self.objects[index]
+        video_dsc, label = self.objects[index]
+        video_dsc = video_dsc.view(video_dsc.size(0), -1)
+        return video_dsc, label
 
 
     def __len__(self):
@@ -37,7 +46,7 @@ class Dataset(torchdata.Dataset):
 
     def get_result_one_hot_vector(self, letter):
         return {
-            'L': [1, 0, 0],
-            'R': [0, 1, 0],
-            'T': [0, 0, 1]
+            'L': np.array([1, 0, 0]),
+            'R': np.array([0, 1, 0]),
+            'T': np.array([0, 0, 1])
         }.get(letter)
