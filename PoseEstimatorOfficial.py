@@ -78,7 +78,8 @@ class PoseEstimatorOfficial:
 
     def getPoseEstimationImgFromCoordinatesByArr(self, oriImg, coords_arr):
         canvas, to_plot = plot_from_pose_coords(oriImg, coords_arr)
-        cv2.imwrite('result.png', to_plot)
+        #cv2.imwrite('result.png', to_plot)
+        return to_plot
 
 
 # videoCapture = CV2VideoCapture('/media/rabkinda/Gal_Backup/fencing/fencing-AI/precut/yfTCxEAUWYI.mp4')
