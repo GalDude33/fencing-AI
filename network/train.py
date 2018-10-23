@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -13,7 +13,7 @@ from network.model import FencingModel
 from network.dataloader import Dataset
 
 
-batch_size = 32
+batch_size = 5
 workers = 2
 use_cuda = True
 learning_rate = 1e-4
