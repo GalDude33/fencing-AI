@@ -3,14 +3,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class RNNUnit(nn.Module):
-    def __init__(self):
-        super(RNNUnit, self).__init__()
+class FencingModel(nn.Module):
+
+    def __init__(self, use_cuda):
+        super(FencingModel, self).__init__()
+        self.device = torch.device("cuda" if use_cuda else "cpu")
+        output_size = 3
+        #rnn properties
         self.rnn_type = 'lstm'#opt.rnn_type
         self.rnn_size = 128#opt.rnn_size
         self.num_layers = 1#opt.num_layers
         self.drop_prob_lm = 0#opt.drop_prob_lm
-        self.input_size = 2*17*2*2
+        self.input_size = 2 * 17 * 2 * 2
 
         self.rnn = getattr(
             nn,
@@ -20,42 +24,11 @@ class RNNUnit(nn.Module):
             self.num_layers,
             bias=False,
             dropout=self.drop_prob_lm)
-
-    def forward(self, x_t, state):
-        output, state = self.rnn(x_t.unsqueeze(0), state)
-        return output.squeeze(0), state
-
-
-class FencingModel(nn.Module):
-
-    def __init__(self, use_cuda):
-        super(FencingModel, self).__init__()
-        self.device = torch.device("cuda" if use_cuda else "cpu")
-        output_size = 3
-
-        self.core = RNNUnit()
-        self.fc = nn.Linear(self.core.rnn_size, output_size)
-
-
-    def init_hidden(self, batch_size):
-        state_shape = (self.core.num_layers, batch_size, self.core.rnn_size)
-
-        if self.core.rnn_type == 'lstm':
-            return (torch.zeros(state_shape, dtype=torch.float32, device=self.device),
-                    torch.zeros(state_shape, dtype=torch.float32, device=self.device))
-        else:
-            return torch.zeros(state_shape, dtype=torch.float32, device=self.device)
+        self.fc = nn.Linear(self.rnn_size, output_size)
 
 
     def forward(self, frames_pose_tensor):
-        frames_num = frames_pose_tensor.shape[1]
-        batch_size = frames_pose_tensor.shape[0]
-        state = self.init_hidden(batch_size)
-        output = None
-
-        for frame_idx in range(0, frames_num):
-            curr_frame_pose = frames_pose_tensor[:, frame_idx, :]
-            output, state = self.core(curr_frame_pose, state)
-
-        logprobs = F.log_softmax(self.fc(output), dim=1)
+        _frames_pose_tensor = frames_pose_tensor.transpose(0, 1) #**input** of shape `(seq_len, batch, input_size)`
+        output, state = self.rnn(_frames_pose_tensor)
+        logprobs = F.log_softmax(self.fc(output[-1]), dim=1)
         return logprobs
