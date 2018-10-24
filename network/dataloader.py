@@ -19,7 +19,7 @@ class Dataset(torchdata.Dataset):
             if any(vid_filter for vid_filter in video_names_to_filter if vid_filter in descriptor_file):
                 with (open(descriptor_file, "rb")) as file:
                     ndarray_dict = pickle.load(file)
-                    video_dsc = np.zeros((len(ndarray_dict), 2, 17, 2, 2))
+                    video_dsc = np.zeros((len(ndarray_dict), 2, 17, 2, 2), dtype=np.float32)
 
                     for key in range(0, len(ndarray_dict)):
                         video_dsc[key] = ndarray_dict[str(key)]
