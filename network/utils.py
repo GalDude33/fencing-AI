@@ -38,7 +38,6 @@ class AverageMeter(object):
 
 
 class BinCounterMeter(object):
-    """Computes and stores the average and current value"""
     def __init__(self, values):
         self.values = values
         self.hist_map = {}
@@ -59,11 +58,11 @@ class BinCounterMeter(object):
         return res/self.count
 
 
-def accuracy(trg, pred):
-    _, preds = torch.max(pred, dim=1)
+def accuracy(log_pred_prob, trg):
+    _, pred_as_ind = torch.max(log_pred_prob, dim=1)
     valid = (trg >= 0)
-    acc = 1.0 * torch.sum(valid * (preds == trg)) / (torch.sum(valid) + 1e-10)
-    return acc.item(), torch.sum(valid).item()
+    acc = 1.0 * torch.sum(valid * (pred_as_ind == trg)).item() / torch.sum(valid).item()
+    return acc, torch.sum(valid).item()
 
 
 def check_grad(params, clip_th, ignore_th):
