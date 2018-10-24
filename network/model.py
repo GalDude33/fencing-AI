@@ -1,10 +1,9 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 
 class RNNUnit(nn.Module):
-
     def __init__(self):
         super(RNNUnit, self).__init__()
         self.rnn_type = 'lstm'#opt.rnn_type
@@ -29,34 +28,23 @@ class RNNUnit(nn.Module):
 
 class FencingModel(nn.Module):
 
-    def __init__(self):
+    def __init__(self, use_cuda):
         super(FencingModel, self).__init__()
-        self.core = RNNUnit()
+        self.device = torch.device("cuda" if use_cuda else "cpu")
         output_size = 3
+
+        self.core = RNNUnit()
         self.fc = nn.Linear(self.core.rnn_size, output_size)
 
 
     def init_hidden(self, batch_size):
-        weight = next(self.parameters()).data
+        state_shape = (self.core.num_layers, batch_size, self.core.rnn_size)
 
         if self.core.rnn_type == 'lstm':
-            return (
-                Variable(
-                    weight.new(
-                        self.core.num_layers,
-                        batch_size,
-                        self.core.rnn_size).zero_()),
-                Variable(
-                    weight.new(
-                        self.core.num_layers,
-                        batch_size,
-                        self.core.rnn_size).zero_()))
+            return (torch.zeros(state_shape, dtype=torch.float32, device=self.device),
+                    torch.zeros(state_shape, dtype=torch.float32, device=self.device))
         else:
-            return Variable(
-                weight.new(
-                    self.core.num_layers,
-                    batch_size,
-                    self.core.rnn_size).zero_())
+            return torch.zeros(state_shape, dtype=torch.float32, device=self.device)
 
 
     def forward(self, frames_pose_tensor):
