@@ -1,13 +1,11 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 class FencingModel(nn.Module):
 
-    def __init__(self, use_cuda):
+    def __init__(self):
         super(FencingModel, self).__init__()
-        self.device = torch.device("cuda" if use_cuda else "cpu")
         output_size = 3
         #rnn properties
         self.rnn_type = 'lstm'#opt.rnn_type
