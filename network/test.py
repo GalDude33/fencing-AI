@@ -12,8 +12,7 @@ from network.utils import AverageMeter, BinCounterMeter, accuracy
 batch_size = 5
 workers = 2
 use_cuda = True
-checkpoint = ''
-expName = 'fencing_exp'
+checkpoint = 'fencing_exp/bestmodel.pth'
 labels_arr = np.array([0, 1, 2])
 device = torch.device("cuda" if use_cuda else "cpu")
 
