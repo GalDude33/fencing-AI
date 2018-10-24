@@ -79,3 +79,19 @@ def adjust_learning_rate(optimizer, shrink_factor):
     for param_group in optimizer.param_groups:
         param_group['lr'] = param_group['lr'] * shrink_factor
     print("The new learning rate is %.8f\n" % (optimizer.param_groups[0]['lr'],))
+
+
+def get_letter_from_label(label):
+    return {
+        0: 'L',
+        1: 'R',
+        2: 'T'
+    }.get(label)
+
+
+def get_label_from_letter(letter):
+    return {
+        'L': 0,
+        'R': 1,
+        'T': 2
+    }.get(letter)

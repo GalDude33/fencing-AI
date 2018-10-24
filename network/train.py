@@ -48,7 +48,7 @@ def train(model, criterion, optimizer, epoch, writer):
     output_count_meter = BinCounterMeter(labels_arr)
     train_enum = tqdm(train_loader, desc='Train epoch %d' % epoch)
 
-    for pose_dsc, label in train_enum:
+    for pose_dsc, label, _ in train_enum:
         pose_dsc, label = pose_dsc.to(device), label.to(device)
 
         # Zero gradients
@@ -100,7 +100,7 @@ def evaluate(model, criterion, epoch, writer):
     valid_enum = tqdm(valid_loader, desc='Valid epoch %d' % epoch)
 
     with torch.no_grad():
-        for pose_dsc, label in valid_enum:
+        for pose_dsc, label, _ in valid_enum:
             pose_dsc, label = pose_dsc.to(device), label.to(device)
 
             # Forward

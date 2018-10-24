@@ -5,6 +5,9 @@ import torch.utils.data as torchdata
 import glob
 import pickle
 import os
+import ntpath
+
+from network.utils import get_label_from_letter
 
 
 class Dataset(torchdata.Dataset):
@@ -24,16 +27,17 @@ class Dataset(torchdata.Dataset):
                     for key in range(0, len(ndarray_dict)):
                         video_dsc[key] = ndarray_dict[str(key)]
 
-                    self.objects.append((torch.from_numpy(video_dsc), self.getLabelFromFilename(descriptor_file)))
+                    base_clip_name = os.path.splitext(ntpath.basename(descriptor_file))[0]
+                    self.objects.append((torch.from_numpy(video_dsc), self.getLabelFromFilename(descriptor_file), base_clip_name))
 
         if is_train:
             random.shuffle(self.objects)
 
 
     def __getitem__(self, index):
-        video_dsc, label = self.objects[index]
+        video_dsc, label, base_clip_name = self.objects[index]
         video_dsc = video_dsc.view(video_dsc.size(0), -1)
-        return video_dsc, label
+        return video_dsc, label, base_clip_name
 
 
     def __len__(self):
@@ -43,12 +47,4 @@ class Dataset(torchdata.Dataset):
     def getLabelFromFilename(self, descriptor_file):
         filename = os.path.splitext(os.path.basename(descriptor_file))[0]
         result_letter = filename.split('-')[-1]
-        return self.get_label_from_letter(result_letter)
-
-
-    def get_label_from_letter(self, letter):
-        return {
-            'L': 0,
-            'R': 1,
-            'T': 2
-        }.get(letter)
+        return get_label_from_letter(result_letter)
