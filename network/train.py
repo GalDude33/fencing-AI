@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from tensorboardX import SummaryWriter
-from torch.autograd import Variable
 from tqdm import tqdm
 import os
 import json
@@ -11,6 +10,7 @@ import numpy as np
 
 from network.model import FencingModel
 from network.dataloader import Dataset
+from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, accuracy, check_grad
 
 
 batch_size = 5
@@ -19,41 +19,44 @@ use_cuda = True
 learning_rate = 1e-4
 checkpoint = ''
 expName = 'fencing_exp'
-epochs = 50
+epochs = 100
 adjust_lr_manually = 1
 max_not_improving_epochs = 10
 clip_grad = 0.5
 ignore_grad = 10000.0
+labels_arr = np.array([0, 1, 2])
+device = torch.device("cuda" if use_cuda else "cpu")
 
-train_dataset = Dataset(is_train=1)
+train_dataset = Dataset(is_train=1, txt_path='train_val_test_splitter/train.txt')
 train_loader = torch.utils.data.DataLoader(train_dataset,
                          batch_size=batch_size,
                          num_workers=workers,
                          pin_memory=True,
                          shuffle=True)
 
-valid_dataset = Dataset(is_train=0)
+valid_dataset = Dataset(is_train=0, txt_path='train_val_test_splitter/val.txt')
 valid_loader = torch.utils.data.DataLoader(valid_dataset,
                          batch_size=batch_size,
                          num_workers=workers,
                          pin_memory=True)
 
 
-def train(model, criterion, optimizer, epoch, train_losses, writer, iterNum):
+def train(model, criterion, optimizer, epoch, writer):
     model.train()
     total = 0   # Reset every plot_every
+    acc_meter = AverageMeter()
+    output_count_meter = BinCounterMeter(labels_arr)
     train_enum = tqdm(train_loader, desc='Train epoch %d' % epoch)
 
     for pose_dsc, label in train_enum:
-        pose_dsc_var = Variable(pose_dsc).cuda()
-        label_var = Variable(label).cuda()
+        pose_dsc, label = pose_dsc.to(device), label.to(device)
 
         # Zero gradients
         optimizer.zero_grad()
 
         # Forward
-        output = model(pose_dsc_var)
-        loss = criterion(output, label_var)
+        output = model(pose_dsc)
+        loss = criterion(output, label)
 
         # Backward
         loss.backward()
@@ -65,96 +68,87 @@ def train(model, criterion, optimizer, epoch, train_losses, writer, iterNum):
             continue
 
         optimizer.step()
-        total += loss.data[0]
-        iterNum += 1
+        total += loss.item()
+        # calculate accuracy
+        acc, pix = accuracy(output, label)
+        acc_meter.update(acc, pix)
+
+        _, output_as_ind = torch.max(output, dim=1)
+        unique, counts = np.unique(output_as_ind.cpu().numpy(), return_counts=True)
+        output_count_meter.update(unique, counts)
 
     for name, param in model.named_parameters():
         writer.add_histogram(name, param.data.cpu().numpy(), epoch)
 
         if param.grad is not None:
-            writer.add_histogram(name + '/gradient', param.grad.data.cpu().numpy(), epoch)
+            writer.add_histogram(name + '/gradient', param.grad.cpu().numpy(), epoch)
 
     loss_avg = total / len(train_loader)
+    acc_avg = acc_meter.average() * 100
     writer.add_scalar('Loss_Avg/Train', loss_avg, epoch)
-    train_losses.append(loss_avg)
-    print('====> Total train set loss: {:.4f}'.format(loss_avg))
-    return iterNum, loss_avg
+    writer.add_scalar('Precision_Avg/Train', acc_avg, epoch)
+    avg_dist_arr = output_count_meter.get_distribution()
+    print('====> Total train set loss: {:.4f}, acc: {:.4f}, dist: ({:.4f}, {:.4f}, {:.4f})'.format(loss_avg, acc_avg, *avg_dist_arr))
+    return loss_avg, acc_avg
 
 
-def evaluate(model, criterion, epoch, eval_losses, writer, iterNum):
+def evaluate(model, criterion, epoch, writer):
     model.eval()
     total = 0
+    acc_meter = AverageMeter()
+    output_count_meter = BinCounterMeter(labels_arr)
     valid_enum = tqdm(valid_loader, desc='Valid epoch %d' % epoch)
 
-    for pose_dsc, label in valid_enum:
-        pose_dsc_var = Variable(pose_dsc).cuda()
-        label_var = Variable(label).cuda()
+    with torch.no_grad():
+        for pose_dsc, label in valid_enum:
+            pose_dsc, label = pose_dsc.to(device), label.to(device)
 
-        # Forward
-        output = model(pose_dsc_var)
-        loss = criterion(output, label_var)
+            # Forward
+            output = model(pose_dsc)
+            loss = criterion(output, label)
 
-        total += loss.data[0]
-        iterNum += 1
+            total += loss.item()
+            # calculate accuracy
+            acc, pix = accuracy(output, label)
+            acc_meter.update(acc, pix)
+
+            _, output_as_ind = torch.max(output, dim=1)
+            unique, counts = np.unique(output_as_ind.cpu().numpy(), return_counts=True)
+            output_count_meter.update(unique, counts)
 
     loss_avg = total / len(valid_loader)
+    acc_avg = acc_meter.average() * 100
 
     writer.add_scalar('Loss_Avg/Val', loss_avg, epoch)
-    eval_losses.append(loss_avg)
-    print('====> Total validation set loss: {:.4f}'.format(loss_avg))
-    return iterNum, loss_avg
-
-
-def check_grad(params, clip_th, ignore_th):
-    befgad = torch.nn.utils.clip_grad_norm(params, clip_th)
-    return (not np.isfinite(befgad) or (befgad > ignore_th))
-
-
-def adjust_learning_rate(optimizer, shrink_factor):
-    """
-    Shrinks learning rate by a specified factor.
-    """
-
-    print("\nDECAYING learning rate.")
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = param_group['lr'] * shrink_factor
-    print("The new learning rate is %.8f\n" % (optimizer.param_groups[0]['lr'],))
+    writer.add_scalar('Precision_Avg/Val', acc_avg, epoch)
+    avg_dist_arr = output_count_meter.get_distribution()
+    print('====> Total validation set loss: {:.4f}, acc: {:.4f}, dist: ({:.4f}, {:.4f}, {:.4f})'.format(loss_avg, acc_avg, *avg_dist_arr))
+    return loss_avg, acc_avg
 
 
 def main():
     startTime = datetime.now()
     start_epoch = 1
-    trainIter = 1
-    valIter = 1
 
-    model = FencingModel()
-    if use_cuda:
-        model.cuda()
-
+    model = FencingModel().to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     if checkpoint != '':
         checkpoint_args_path = os.path.dirname(checkpoint) + '/args.pth'
         checkpoint_args = torch.load(checkpoint_args_path)
 
-        start_epoch = checkpoint_args[3]
-        trainIter = checkpoint_args[4]
-        valIter = checkpoint_args[5]
+        start_epoch = checkpoint_args[1]
 
-        lr = checkpoint_args[6]
+        lr = checkpoint_args[2]
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
 
         model.load_state_dict(torch.load(checkpoint))
 
-    criterion = nn.CrossEntropyLoss()
-    if use_cuda:
-        criterion = criterion.cuda()
+    criterion = nn.NLLLoss().to(device)
 
-    # Keep track of losses
-    train_losses = []
-    eval_losses = []
     best_eval = float('inf')
+    best_val_err_full_info = {}
 
     writer = SummaryWriter(expName)
     epochs_since_improvement=0
@@ -169,20 +163,21 @@ def main():
             if epochs_since_improvement > 0 and epochs_since_improvement % 3 == 0:
                 adjust_learning_rate(optimizer, 0.6)
 
-        trainIter, train_avg_loss = train(model, criterion, optimizer, epoch, train_losses, writer, trainIter)
-        valIter, val_avg_loss = evaluate(model, criterion, epoch, eval_losses, writer, valIter)
+        train_avg_loss, train_avg_acc = train(model, criterion, optimizer, epoch, writer)
+        val_avg_loss, val_avg_acc = evaluate(model, criterion, epoch, writer)
 
         if val_avg_loss < best_eval:
             torch.save(model.state_dict(), '%s/bestmodel.pth' % (expName))
             best_eval = val_avg_loss
             epochs_since_improvement = 0
-            best_val_err_full_info = {'epoch': epoch, 'train_avg_loss': train_avg_loss, 'val_avg_loss': val_avg_loss}
+            best_val_err_full_info = {'epoch': epoch, 'train_avg_loss': train_avg_loss, 'train_avg_acc': train_avg_acc,
+                                           'val_avg_loss': val_avg_loss, 'val_avg_acc': val_avg_acc}
         else:
             epochs_since_improvement += 1
             print("\nEpochs since last improvement: %d\n" % (epochs_since_improvement,))
 
         torch.save(model.state_dict(), '%s/lastmodel.pth' % (expName))
-        torch.save([train_losses, eval_losses, epoch, trainIter, valIter, optimizer.param_groups[0]['lr']], '%s/args.pth' % (expName))
+        torch.save([epoch, optimizer.param_groups[0]['lr']], '%s/args.pth' % (expName))
 
     writer.close()
     print(json.dumps(best_val_err_full_info, indent=4, sort_keys=True))
