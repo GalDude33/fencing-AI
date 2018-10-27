@@ -43,4 +43,4 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
 
         if next_clip_start_pos == -1:
             break
-        #cap.set_position(next_clip_start_pos)
+        cap.set_position(next_clip_start_pos)
