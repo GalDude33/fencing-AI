@@ -135,25 +135,14 @@ def find_hit_info(cap):
     if pre_left_score==15 or pre_right_score==15:
         return hit_pos, next_clip_start_pos, label
 
-    #cap.set_position(first_light_on_pos)
-    #first_light_off_pos = find_hit_end(cap)
-    #if first_light_off_pos==-1:
-    #    return hit_pos, next_clip_start_pos, label
-    #hit_end_pos = first_light_off_pos
-
     #go from first_light_on_pos to first_light_off_pos, and save the frame which has bigger number of lights on
-    #cap.set_position(first_light_on_pos)
-    hit_pos, _, hit_pos_frame = find_max_hit_lights(cap, first_light_on_pos)#, first_light_off_pos)
+    hit_pos, _, hit_pos_frame = find_max_hit_lights(cap, first_light_on_pos)
 
-    #cap.set_position(hit_pos)
-    #frame = cap.read()
     hit_type = check_lights(hit_pos_frame)
     if hit_type == "No-No":
         raise Exception("got No-No")
 
-    # cap.set_position(first_light_off_pos)
-    next_clip_start_pos, post_left_score, post_right_score = find_score_change(cap)#, pre_left_score, pre_right_score)
-    # post_left_score, post_right_score = get_score_after_hit(cap)
+    next_clip_start_pos, post_left_score, post_right_score = find_score_change(cap)
 
     if post_left_score - pre_left_score > 1 or post_right_score - pre_right_score > 1:
         raise Exception("Missed score")
@@ -164,29 +153,7 @@ def find_hit_info(cap):
     return hit_pos, next_clip_start_pos, label
 
 
-# def get_score_after_hit(cap):
-#     post_left_score, post_right_score = -1, -1
-#     step = 5
-#     first_frame_after_hit_pos = cap.get_position()
-#     next_hit_pos, _ = find_hit_position(cap)
-#     cap.set_position(first_frame_after_hit_pos)
-#     end_pos = min(first_frame_after_hit_pos + 60, cap.__len__())
-#     if next_hit_pos>0:
-#         end_pos = min(next_hit_pos, end_pos)
-#
-#     while cap.get_position() < end_pos:
-#         frame = cap.read()
-#         light_on, _ = HitChecker.check(frame)
-#         if not light_on:
-#             post_left_score, post_right_score = get_scores(frame)
-#         else:
-#             return post_left_score, post_right_score
-#         cap.skip(step - 1)
-#
-#     return post_left_score, post_right_score
-
-
-def find_max_hit_lights(cap: CV2VideoCapture, first_light_on_pos):#, first_light_off_pos):
+def find_max_hit_lights(cap: CV2VideoCapture, first_light_on_pos):
     hit_pos, hit_light_on_list, hit_pos_frame = first_light_on_pos, [], None
 
     while cap.get_position() < cap.__len__():
@@ -204,39 +171,14 @@ def find_max_hit_lights(cap: CV2VideoCapture, first_light_on_pos):#, first_light
     return hit_pos, hit_light_on_list, hit_pos_frame
 
 
-def find_hit_position(cap: CV2VideoCapture):#, step=15):
+def find_hit_position(cap: CV2VideoCapture):
     while cap.get_position() < cap.__len__():
         frame = cap.read()
         light_on, light_on_list = HitChecker.check(frame)
         if light_on:
             return cap.get_position() - 1, light_on_list
-            #return find_precise_hit_position_in_range(cap, cap.get_position()-step, cap.get_position()-1)
-        #cap.skip(step - 1)
 
     return -1, []
-
-
-# def find_precise_hit_position_in_range(cap: CV2VideoCapture, start_pos, end_pos):
-#     start_pos = start_pos if start_pos>0 else 0
-#     cap.set_position(start_pos)
-#
-#     while cap.get_position() < end_pos+1:
-#         frame = cap.read()
-#         light_on, light_on_list = HitChecker.check(frame)
-#         if light_on:
-#             return cap.get_position()-1, light_on_list
-#
-#     return -1, []
-
-
-def find_hit_end(cap: CV2VideoCapture):
-    while cap.get_position() < cap.__len__():
-        frame = cap.read()
-        light_on, light_on_list = HitChecker.check(frame)
-        if not light_on:
-            return cap.get_position()-1
-
-    return -1
 
 
 def get_scores(frame):
@@ -296,6 +238,21 @@ def check_lights(frame):
     return string
 
 
+def find_score_change(cap: CV2VideoCapture):
+    prevFrame=None
+    while cap.get_position() < cap.__len__():
+        frame = cap.read()
+        light_on, light_on_list = HitChecker.check(frame)
+        if light_on:
+            left_score, right_score = get_scores(prevFrame)
+            return cap.get_position()-1, left_score, right_score
+
+        prevFrame = frame
+
+    left_score, right_score = get_scores(prevFrame)
+    return -1, left_score, right_score
+
+
 # def get_caption_from_video(cap):
 #     orig_pos = cap.get_position()
 #     orig_frame = cap.skip(30).read()
@@ -325,31 +282,3 @@ def check_lights(frame):
 #         return caption(hit_type, prev_l_score, prev_r_score, l_score, r_score)
 #     else:
 #         return None
-
-
-def find_score_change(cap: CV2VideoCapture):#, orig_left_score, orig_right_score):
-    #frame = cap.read()
-    #orig_left_score, orig_right_score = get_scores(frame)
-    prevFrame=None
-    while cap.get_position() < cap.__len__():
-        frame = cap.read()
-        light_on, light_on_list = HitChecker.check(frame)
-        if light_on:
-            #cap.set_position(cap.get_position()-2)
-            #frame = cap.read()
-            left_score, right_score = get_scores(prevFrame)
-            return cap.get_position()-1, left_score, right_score
-
-        prevFrame = frame
-        # if not light_on:
-        #     left_score, right_score = get_scores(frame)
-        #     if left_score != orig_left_score or right_score != orig_right_score:
-        #         return cap.get_position()-1, left_score, right_score
-        # else:
-        #     return cap.get_position()-1, orig_left_score, orig_right_score
-        #cap.skip(step - 1)
-
-    #cap.set_position(cap.__len__() - 2)
-    #frame = cap.read()
-    left_score, right_score = get_scores(prevFrame)
-    return -1, left_score, right_score
