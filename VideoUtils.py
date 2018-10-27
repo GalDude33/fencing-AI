@@ -63,12 +63,12 @@ class HitChecker:
         return np.sum(abs(frame[337*2:348*2, 390*2:406*2].astype(int) - cls.white_box.astype(int))) <= 4*7000
 
     @classmethod
-    def check(cls, frame):
+    def check(cls, frame, including_white):
         light_on_list = []
 
-        if cls.check_left_white(frame):
+        if including_white and cls.check_left_white(frame):
             light_on_list.append('left_white')
-        if cls.check_right_white(frame):
+        if including_white and cls.check_right_white(frame):
             light_on_list.append('right_white')
         if cls.check_green(frame):
             light_on_list.append('green')
@@ -129,7 +129,8 @@ def find_hit_info(cap):
     if first_light_on_pos==-1:
         return hit_pos, next_clip_start_pos, label
 
-    cap.set_position(first_light_on_pos - 1)
+    prev_score_frame_pos = first_light_on_pos - 1 if first_light_on_pos - 1>=0 else first_light_on_pos
+    cap.set_position(prev_score_frame_pos)
     frame = cap.read()
     pre_left_score, pre_right_score = get_scores(frame)
     if pre_left_score==15 or pre_right_score==15:
@@ -158,7 +159,7 @@ def find_max_hit_lights(cap: CV2VideoCapture, first_light_on_pos):
 
     while cap.get_position() < cap.__len__():
         frame = cap.read()
-        curr_light_on, curr_light_on_list = HitChecker.check(frame)
+        curr_light_on, curr_light_on_list = HitChecker.check(frame, including_white=True)
 
         if len(curr_light_on_list)>len(hit_light_on_list):
             hit_light_on_list = curr_light_on_list
@@ -174,7 +175,7 @@ def find_max_hit_lights(cap: CV2VideoCapture, first_light_on_pos):
 def find_hit_position(cap: CV2VideoCapture):
     while cap.get_position() < cap.__len__():
         frame = cap.read()
-        light_on, light_on_list = HitChecker.check(frame)
+        light_on, light_on_list = HitChecker.check(frame, including_white=False)
         if light_on:
             return cap.get_position() - 1, light_on_list
 
@@ -242,7 +243,7 @@ def find_post_hit_score(cap: CV2VideoCapture):
     prevFrame=None
     while cap.get_position() < cap.__len__():
         frame = cap.read()
-        light_on, light_on_list = HitChecker.check(frame)
+        light_on, light_on_list = HitChecker.check(frame, including_white=True)
         if light_on:
             left_score, right_score = get_scores(prevFrame)
             return cap.get_position()-1, left_score, right_score
