@@ -142,7 +142,7 @@ def find_hit_info(cap):
     if hit_type == "No-No":
         raise Exception("got No-No")
 
-    next_clip_start_pos, post_left_score, post_right_score = find_score_change(cap)
+    next_clip_start_pos, post_left_score, post_right_score = find_post_hit_score(cap)
 
     if post_left_score - pre_left_score > 1 or post_right_score - pre_right_score > 1:
         raise Exception("Missed score")
@@ -238,7 +238,7 @@ def check_lights(frame):
     return string
 
 
-def find_score_change(cap: CV2VideoCapture):
+def find_post_hit_score(cap: CV2VideoCapture):
     prevFrame=None
     while cap.get_position() < cap.__len__():
         frame = cap.read()
