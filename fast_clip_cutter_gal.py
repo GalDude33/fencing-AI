@@ -32,7 +32,7 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
 
     while cap.get_position() <= cap.__len__():
         print(cap.get_position(), "big while loop", cap.__len__())
-        hit_pos, hit_end_pos, label = find_hit_info(cap)
+        hit_pos, next_clip_start_pos, label = find_hit_info(cap)
         if hit_pos == -1:
             break
 
@@ -41,6 +41,6 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
             ffmpeg_extract_subclip(vid, t1=(hit_pos - 50)/fps, n_frames=60, targetname=targetname)
             clips_recorded += 1
 
-        if hit_end_pos == -1:
+        if next_clip_start_pos == -1:
             break
-        cap.set_position(hit_end_pos)
+        #cap.set_position(next_clip_start_pos)
