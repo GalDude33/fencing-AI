@@ -78,6 +78,32 @@ class HitChecker:
         light_on = size(light_on_list)>0
         return light_on, light_on_list
 
+    @classmethod
+    #returns 0 if first list is greater, 1 if second list is greater, and 2 if they equal
+    def get_max_lights_list(cls, first_light_on_list, second_light_on_list):
+        if set(first_light_on_list)==set(second_light_on_list):
+            return 2
+
+        def filter_white(list):
+            return [e for e in list if 'white' not in e]
+
+        def get_more_elements_list(list1, list2):
+            len_diff = len(list1)-len(list2)
+            if len_diff>0:
+                return 0
+            elif len_diff<0:
+                return 1
+            else:
+                return 2
+
+        first_list_without_white = filter_white(first_light_on_list)
+        second_list_without_white = filter_white(second_light_on_list)
+
+        res = get_more_elements_list(first_list_without_white, second_list_without_white)
+        if res==2:
+            res = get_more_elements_list(first_light_on_list, second_light_on_list)
+        return res
+
 
 class CV2VideoCapture:
     def __init__(self, video_path):
@@ -161,7 +187,7 @@ def find_max_hit_lights(cap: CV2VideoCapture, first_light_on_pos):
         frame = cap.read()
         curr_light_on, curr_light_on_list = HitChecker.check(frame, including_white=True)
 
-        if len(curr_light_on_list)>len(hit_light_on_list):
+        if HitChecker.get_max_lights_list(curr_light_on_list, hit_light_on_list)==0:
             hit_light_on_list = curr_light_on_list
             hit_pos = cap.get_position()-1
             hit_pos_frame = frame
@@ -243,7 +269,7 @@ def find_post_hit_score(cap: CV2VideoCapture):
     prevFrame=None
     while cap.get_position() < cap.__len__():
         frame = cap.read()
-        light_on, light_on_list = HitChecker.check(frame, including_white=True)
+        light_on, light_on_list = HitChecker.check(frame, including_white=False)
         if light_on:
             left_score, right_score = get_scores(prevFrame)
             return cap.get_position()-1, left_score, right_score
