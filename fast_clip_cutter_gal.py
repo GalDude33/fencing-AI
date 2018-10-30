@@ -44,7 +44,7 @@ for vid in glob.glob(os.getcwd() + "/precut/" + "*.mp4"):
                 break
 
             if hit_pos - 50>=0:
-                targetname = 'videos/' + Path(vid).stem + "-" + str(clips_recorded) + "-" + label + "-" + str(hit_pos) + '.mp4'
+                targetname = 'clips/' + Path(vid).stem + "-" + str(clips_recorded) + "-" + label + "-" + str(hit_pos) + '.mp4'
                 ffmpeg_extract_subclip(vid, t1=(hit_pos - 50)/fps, n_frames=60, targetname=targetname)
                 clips_recorded += 1
 

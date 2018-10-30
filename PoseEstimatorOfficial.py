@@ -73,7 +73,7 @@ class PoseEstimatorOfficial:
         if first_player_x_mean>second_player_x_mean:
             fencing_players_coords = fencing_players_coords[::-1]
 
-        return fencing_players_coords
+        return fencing_players_coords, paf, heatmap
 
 
     def getPoseEstimationImgFromCoordinatesByArr(self, oriImg, coords_arr):
