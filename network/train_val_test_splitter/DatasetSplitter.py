@@ -9,7 +9,8 @@ def write_list_to_file(list, filename):
         for str in list:
             f.write(str+'\n')
 
-videos_to_split = [os.path.splitext(ntpath.basename(vid))[0] for vid in glob.glob(os.getcwd() + "/../../pose_estimations/" + "*.pickle")]
+videos_to_split = [os.path.splitext(ntpath.basename(vid))[0] for vid in
+                   glob.glob('/media/rabkinda/DATA/fencing/FinalPoseEstimationResults/jsons*/*.json')]
 videos_to_split = [vid[:re.search("-\d{1,2}-\w", vid).regs[0][0]] for vid in videos_to_split]
 videos_to_split = list(set(videos_to_split))#['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
 videos_to_split.sort()  # make sure that the filenames have a fixed order before shuffling

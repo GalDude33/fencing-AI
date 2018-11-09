@@ -46,25 +46,44 @@ class PoseEstimatorOfficial:
         return self.getPoseEstimationCoordinatesByArr(oriImg)
 
 
-    def getPoseEstimationCoordinatesByArr(self, oriImg):
+    def filterFencingPlayers(self, coords_arr):
+        fencing_players_ind = np.argsort(np.sum(np.sum(np.abs(coords_arr[:,:,0]-coords_arr[:,:,1]), 1), 1))[-3:]
+        curr_fencing_players_coords = coords_arr[fencing_players_ind]
+        fencing_players_ind = np.argsort(np.array([np.count_nonzero(p_arr == -1.) for p_arr in curr_fencing_players_coords]))[:2]
+        curr_fencing_players_coords = curr_fencing_players_coords[fencing_players_ind]
+        return curr_fencing_players_coords
+
+
+    def getPoseEstimationNetworkResultByArr(self, oriImg):
         multiplier = get_multiplier(oriImg)
 
         with torch.no_grad():
             orig_paf, orig_heat = get_outputs(multiplier, oriImg, self.model, 'rtpose')
 
             # Get results of flipped image
-            swapped_img = oriImg[:, ::-1, :]
-            flipped_paf, flipped_heat = get_outputs(multiplier, swapped_img, self.model, 'rtpose')
+            # swapped_img = oriImg[:, :, ::-1, :]
+            # flipped_paf, flipped_heat = get_outputs(multiplier, swapped_img, self.model, 'rtpose')
 
             # compute averaged heatmap and paf
-            paf, heatmap = handle_paf_and_heat(orig_heat, flipped_heat, orig_paf, flipped_paf)
+            # paf, heatmap = handle_paf_and_heat(orig_heat, flipped_heat, orig_paf, flipped_paf)
+            paf, heatmap = orig_paf, orig_heat
 
+        return paf, heatmap
+
+
+    def getPoseEstimationCoordinates(self, oriImg, paf, heatmap):
         param = {'thre1': 0.1, 'thre2': 0.05, 'thre3': 0.5}
+
+        #batch_size = oriImg.shape[0]
+        #fencing_players_coords = np.zeros((batch_size, 2, 17, 2, 2))
+
+        #for i in range(batch_size):
         coords_arr = get_pose(oriImg, param, heatmap, paf)
 
         # filter 2 players which have larger distances among limbs
-        fencing_players_ind = np.argsort(np.mean(np.mean(np.abs(coords_arr[:,:,0]-coords_arr[:,:,1]), 1), 1))[-2:]
-        fencing_players_coords = coords_arr[fencing_players_ind]
+        fencing_players_coords = self.filterFencingPlayers(coords_arr)
+        #fencing_players_ind = np.argsort(np.mean(np.mean(np.abs(coords_arr[:,:,0]-coords_arr[:,:,1]), 1), 1))[-2:]
+        #curr_fencing_players_coords = coords_arr[fencing_players_ind]
 
         #verify left, right side of players
         first_player_x_mean = np.mean(fencing_players_coords[0, :, :, 0])
@@ -73,7 +92,9 @@ class PoseEstimatorOfficial:
         if first_player_x_mean>second_player_x_mean:
             fencing_players_coords = fencing_players_coords[::-1]
 
-        return fencing_players_coords, paf, heatmap
+        #   fencing_players_coords[i] = curr_fencing_players_coords
+
+        return fencing_players_coords
 
 
     def getPoseEstimationImgFromCoordinatesByArr(self, oriImg, coords_arr):

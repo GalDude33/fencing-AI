@@ -73,8 +73,8 @@ def get_multiplier(img):
     :param img: numpy array, the current image
     :returns : list of float. The computed scales
     """
-    scale_search = [0.5, 1., 1.5, 2, 2.5]
-    return [x * 368. / float(img.shape[0]) for x in scale_search]
+    scale_search = [1.]#[0.5, 1., 1.5, 2, 2.5]
+    return [x * 368. / float(img.shape[1]) for x in scale_search]
 
 
 def get_coco_val(file_path):
@@ -100,68 +100,71 @@ def get_outputs(multiplier, img, model, preprocess):
     :returns: numpy arrays, the averaged paf and heatmap
     """
 
-    heatmap_avg = np.zeros((img.shape[0], img.shape[1], 19))
-    paf_avg = np.zeros((img.shape[0], img.shape[1], 38))
+    heatmap_avg = np.zeros((img.shape[0], img.shape[1], img.shape[2], 19))
+    paf_avg = np.zeros((img.shape[0], img.shape[1], img.shape[2], 38))
     max_scale = multiplier[-1]
-    max_size = max_scale * img.shape[0]
+    max_size = max_scale * img.shape[1]
+    img_num = img.shape[0]
     # padding
     max_cropped, _, _ = im_transform.crop_with_factor(
-        img, max_size, factor=8, is_ceil=True)
+        img[0], max_size, factor=8, is_ceil=True)
     batch_images = np.zeros(
-        (len(multiplier), 3, max_cropped.shape[0], max_cropped.shape[1]))
+        (img_num*len(multiplier), 3, max_cropped.shape[0], max_cropped.shape[1]))
 
-    for m in range(len(multiplier)):
-        scale = multiplier[m]
-        inp_size = scale * img.shape[0]
+    for img_ind in range(img_num):
+        for m in range(len(multiplier)):
+            scale = multiplier[m]
+            inp_size = scale * img[img_ind].shape[0]
 
-        # padding
-        im_croped, im_scale, real_shape = im_transform.crop_with_factor(
-            img, inp_size, factor=8, is_ceil=True)
+            # padding
+            im_croped, im_scale, real_shape = im_transform.crop_with_factor(
+                img[img_ind], inp_size, factor=8, is_ceil=True)
 
-        if preprocess == 'rtpose':
-            im_data = rtpose_preprocess(im_croped)
+            if preprocess == 'rtpose':
+                im_data = rtpose_preprocess(im_croped)
 
-        elif preprocess == 'vgg':
-            im_data = vgg_preprocess(im_croped)
+            elif preprocess == 'vgg':
+                im_data = vgg_preprocess(im_croped)
 
-        elif preprocess == 'inception':
-            im_data = inception_preprocess(im_croped)
+            elif preprocess == 'inception':
+                im_data = inception_preprocess(im_croped)
 
-        elif preprocess == 'ssd':
-            im_data = ssd_preprocess(im_croped)
+            elif preprocess == 'ssd':
+                im_data = ssd_preprocess(im_croped)
 
-        batch_images[m, :, :im_data.shape[1], :im_data.shape[2]] = im_data
+            batch_images[img_ind+m, :, :im_data.shape[1], :im_data.shape[2]] = im_data
 
     # several scales as a batch
     batch_var = torch.from_numpy(batch_images).cuda().float()
     predicted_outputs, _ = model(batch_var)
     output1, output2 = predicted_outputs[-2], predicted_outputs[-1]
-    heatmaps = output2.cpu().data.numpy().transpose(0, 2, 3, 1)
-    pafs = output1.cpu().data.numpy().transpose(0, 2, 3, 1)
+    heatmaps = output2.data.cpu().numpy().transpose(0, 2, 3, 1)
+    pafs = output1.data.cpu().numpy().transpose(0, 2, 3, 1)
 
-    for m in range(len(multiplier)):
-        scale = multiplier[m]
-        inp_size = scale * img.shape[0]
+    for img_ind in range(img_num):
+        for m in range(len(multiplier)):
+            scale = multiplier[m]
+            inp_size = scale * img[img_ind].shape[0]
 
-        # padding
-        im_cropped, im_scale, real_shape = im_transform.crop_with_factor(
-            img, inp_size, factor=8, is_ceil=True)
-        heatmap = heatmaps[m, :int(im_cropped.shape[0] /
-                           8), :int(im_cropped.shape[1] / 8), :]
-        heatmap = cv2.resize(heatmap, None, fx=8, fy=8,
-                             interpolation=cv2.INTER_CUBIC)
-        heatmap = heatmap[0:real_shape[0], 0:real_shape[1], :]
-        heatmap = cv2.resize(
-            heatmap, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_CUBIC)
+            # padding
+            im_cropped, im_scale, real_shape = im_transform.crop_with_factor(
+                img[img_ind], inp_size, factor=8, is_ceil=True)
+            heatmap = heatmaps[img_ind+m, :int(im_cropped.shape[0] /
+                               8), :int(im_cropped.shape[1] / 8), :]
+            heatmap = cv2.resize(heatmap, None, fx=8, fy=8,
+                                 interpolation=cv2.INTER_CUBIC)
+            heatmap = heatmap[0:real_shape[0], 0:real_shape[1], :]
+            heatmap = cv2.resize(
+                heatmap, (img[img_ind].shape[1], img[img_ind].shape[0]), interpolation=cv2.INTER_CUBIC)
 
-        paf = pafs[m, :int(im_cropped.shape[0] / 8), :int(im_cropped.shape[1] / 8), :]
-        paf = cv2.resize(paf, None, fx=8, fy=8, interpolation=cv2.INTER_CUBIC)
-        paf = paf[0:real_shape[0], 0:real_shape[1], :]
-        paf = cv2.resize(
-            paf, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_CUBIC)
+            paf = pafs[img_ind+m, :int(im_cropped.shape[0] / 8), :int(im_cropped.shape[1] / 8), :]
+            paf = cv2.resize(paf, None, fx=8, fy=8, interpolation=cv2.INTER_CUBIC)
+            paf = paf[0:real_shape[0], 0:real_shape[1], :]
+            paf = cv2.resize(
+                paf, (img[img_ind].shape[1], img[img_ind].shape[0]), interpolation=cv2.INTER_CUBIC)
 
-        heatmap_avg = heatmap_avg + heatmap / len(multiplier)
-        paf_avg = paf_avg + paf / len(multiplier)
+            heatmap_avg[img_ind] = heatmap_avg[img_ind] + heatmap / len(multiplier)
+            paf_avg[img_ind] = paf_avg[img_ind] + paf / len(multiplier)
 
     return paf_avg, heatmap_avg
 
@@ -242,15 +245,15 @@ def handle_paf_and_heat(normal_heat, flipped_heat, normal_paf, flipped_paf):
                          24, 25, 26, 27, 12, 13, 14, 15, 16, 17, 18, 19, 28,
                          29, 32, 33, 30, 31, 36, 37, 34, 35))
 
-    flipped_paf = flipped_paf[:, ::-1, :]
+    flipped_paf = flipped_paf[:, :, ::-1, :]
 
     # The pafs are unit vectors, The x will change direction after flipped.
     # not easy to understand, you may try visualize it.
-    flipped_paf[:, :, swap_paf[1::2]] = flipped_paf[:, :, swap_paf[1::2]]
-    flipped_paf[:, :, swap_paf[::2]] = -flipped_paf[:, :, swap_paf[::2]]
-    averaged_paf = (normal_paf + flipped_paf[:, :, swap_paf]) / 2.
+    flipped_paf[:, :, :, swap_paf[1::2]] = flipped_paf[:, :, :, swap_paf[1::2]]
+    flipped_paf[:, :, :, swap_paf[::2]] = -flipped_paf[:, :, :, swap_paf[::2]]
+    averaged_paf = (normal_paf + flipped_paf[:, :, :, swap_paf]) / 2.
     averaged_heatmap = (
-        normal_heat + flipped_heat[:, ::-1, :][:, :, swap_heat]) / 2.
+        normal_heat + flipped_heat[:, :, ::-1, :][:, :, :, swap_heat]) / 2.
 
     return averaged_paf, averaged_heatmap
 
