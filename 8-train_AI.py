@@ -16,7 +16,7 @@ import time
 import subprocess as sp
 import os
 import hickle as hkl
-print tf.__version__
+print(tf.__version__)
 
 num_layers = 4
 drop_out_prob = 0.8
@@ -31,13 +31,13 @@ videos_loaded = 0
 for i in os.listdir(os.getcwd()):
     if i.endswith(".hkl"):
         if 'features' in i:
-            print i
+            print(i)
             if videos_loaded == 0:
                 loaded = hkl.load(i)
             else:
                 loaded = np.concatenate((loaded,hkl.load(i)), axis = 0)
             videos_loaded = videos_loaded + 1
-            print loaded.shape
+            print(loaded.shape)
 
 
 # In[41]:
@@ -46,13 +46,13 @@ videos_loaded = 0
 for i in os.listdir(os.getcwd()):
     if i.endswith(".hkl"):
         if "labels" in i:
-            print i
+            print(i)
             if videos_loaded == 0:
                 labels = hkl.load(i)
             else:
                 labels = np.concatenate((labels,hkl.load(i)), axis = 0)
             videos_loaded = videos_loaded + 1
-            print labels.shape
+            print(labels.shape)
 ## Orders match up! Thats good.
 
 
@@ -64,7 +64,7 @@ def unison_shuffled_copies(a, b):
 
 #reorder identically.
 loaded, labels = unison_shuffled_copies(loaded,labels)
-print loaded.shape, labels.shape
+print(loaded.shape, labels.shape)
 
 ## Take the first 'test_size' examples as a test set. 
 test_set = loaded[:test_size]
@@ -76,9 +76,9 @@ test_set_size = len(test_set)
 ## Now cut off the first 'test_size' + valid set numbers examples, because those are the test and validation sets
 loaded = loaded[(test_size+validation_size):]
 labels = labels[(test_size+validation_size):]
-print "Test Set Shape: ", test_set.shape
-print "Validation Set Shape: ", validation_set.shape
-print "Training Set Shape: ", loaded.shape
+print("Test Set Shape: ", test_set.shape)
+print("Validation Set Shape: ", validation_set.shape)
+print("Training Set Shape: ", loaded.shape)
 
 ## Save our test to test when we load the model we've trained. 
 hkl.dump(test_set, 'test_data.hkl', mode='w', compression='gzip', compression_opts=9)
@@ -125,7 +125,7 @@ with tf.device(device_name):
         cell = tf.contrib.rnn.MultiRNNCell([cell] * num_layers, state_is_tuple=True)
         init_state = cell.zero_state(input_batch_size, tf.float32)
         outputs, states = tf.nn.dynamic_rnn(cell,x, initial_state = init_state, swap_memory = True) # swap_memory = True is incredibly important, otherwise gpu will probably run out of RAM
-        print states
+        print(states)
         # Linear activation, outputs -1 is the last 'frame'.
         return tf.matmul(outputs[:,-1,:], weights['out']) + biases['out']
 
@@ -137,7 +137,7 @@ with tf.device(device_name):
 
     with tf.name_scope('Model'):
         pred = RNN(x, weights, biases)
-    print "prediction", pred
+    print("prediction", pred)
     # Define loss and optimizer
     with tf.name_scope('Loss'):
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
@@ -181,7 +181,7 @@ with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
         # y is in form batch * labels
         # Run optimization op (backprop)
         _,acc,loss,summary = sess.run([optimizer,accuracy,cost,merged_summary_op], feed_dict={x: batch_x, y: batch_y, input_batch_size:batch_size})
-        print 'ran'
+        print('ran')
         ## The divide/multiply makes sense because it is reducing it to an int, i.e getting the whole number, could also cast as int, but this shows intent better.
         summary_writer.add_summary(summary, step*batch_size+current_epochs * (len(labels)/batch_size)*batch_size)
 
@@ -206,14 +206,14 @@ with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
             # Save a checkpoint
             saver.save(sess, 'fencing_AI_checkpoint')
             
-            print "Validation Accuracy - All Batches:", sum(accuracies)/len(accuracies)
+            print("Validation Accuracy - All Batches:", sum(accuracies)/len(accuracies))
             
             ## Set dropout back to regularizaing
             drop_out_prob = train_drop_out_prob
                 
-            print "Iter " + str(step*batch_size+current_epochs * (len(labels)/batch_size)*batch_size) + ", Minibatch Loss= " + \
+            print("Iter " + str(step*batch_size+current_epochs * (len(labels)/batch_size)*batch_size) + ", Minibatch Loss= " + \
                   "{:.6f}".format(loss) + ", Train Accuracy= " + \
-                  "{:.5f}".format(acc)
+                  "{:.5f}".format(acc))
                     
             
 
@@ -221,7 +221,7 @@ with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
         step += 1
         if current_epochs < epochs:
             if step >= (len(labels)/batch_size):
-                print "###################### New epoch ##########"
+                print("###################### New epoch ##########")
                 current_epochs = current_epochs + 1
                 learning_rate = learning_rate- (learning_rate*0.15)
                 step = 0
@@ -230,7 +230,7 @@ with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
                 loaded, labels = unison_shuffled_copies(loaded,labels)
 
         
-    print "Learning finished!"
+    print("Learning finished!")
 
   
 
