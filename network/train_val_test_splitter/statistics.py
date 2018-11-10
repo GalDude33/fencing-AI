@@ -41,3 +41,16 @@ def getLabelFromFilename(descriptor_file):
 getStatistics('val.txt', 'val')
 getStatistics('train.txt', 'train')
 getStatistics('test.txt', 'test')
+
+#Result:
+# val:
+# Counter({'T': 546, 'R': 425, 'L': 379})
+# Counter({'T': 0.40444444444444444, 'R': 0.3148148148148148, 'L': 0.28074074074074074})
+#
+# train:
+# Counter({'T': 3446, 'R': 2787, 'L': 2767})
+# Counter({'T': 0.3828888888888889, 'R': 0.30966666666666665, 'L': 0.30744444444444446})
+#
+# test:
+# Counter({'T': 947, 'R': 777, 'L': 765})
+# Counter({'T': 0.38047408597830457, 'R': 0.31217356368019283, 'L': 0.3073523503415026})
