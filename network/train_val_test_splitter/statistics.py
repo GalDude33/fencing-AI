@@ -21,7 +21,15 @@ def getStatistics(txt_path, mode):
             curr_clip_name = os.path.splitext(os.path.basename(curr_clip_name))[0]
 
             if curr_clip_name not in objectsMap:
-                objectsMap[curr_clip_name] = getLabelFromFilename(descriptor_file)
+                label = getLabelFromFilename(descriptor_file)
+
+                if label=='T':
+                    #if it is first clip of video, ignore it
+                    clip_num = getClipNumberFromFilename(curr_clip_name)
+                    if int(clip_num)==0:
+                        continue
+
+                objectsMap[curr_clip_name] = label
 
     values_count = collections.Counter(np.array([v for v in objectsMap.values()]))
     print(values_count)
@@ -38,19 +46,23 @@ def getLabelFromFilename(descriptor_file):
     return result_letter
 
 
+def getClipNumberFromFilename(clip_name):
+    return clip_name.split('-')[-3]
+
+
 getStatistics('val.txt', 'val')
 getStatistics('train.txt', 'train')
 getStatistics('test.txt', 'test')
 
 #Result:
 # val:
-# Counter({'T': 546, 'R': 425, 'L': 379})
-# Counter({'T': 0.40444444444444444, 'R': 0.3148148148148148, 'L': 0.28074074074074074})
+# Counter({'T': 503, 'R': 425, 'L': 379})
+# Counter({'T': 0.38485080336648814, 'R': 0.32517214996174443, 'L': 0.2899770466717674})
 #
 # train:
-# Counter({'T': 3446, 'R': 2787, 'L': 2767})
-# Counter({'T': 0.3828888888888889, 'R': 0.30966666666666665, 'L': 0.30744444444444446})
+# Counter({'T': 3134, 'R': 2787, 'L': 2767})
+# Counter({'T': 0.36072744014732966, 'R': 0.32078729281767954, 'L': 0.3184852670349908})
 #
 # test:
-# Counter({'T': 947, 'R': 777, 'L': 765})
-# Counter({'T': 0.38047408597830457, 'R': 0.31217356368019283, 'L': 0.3073523503415026})
+# Counter({'T': 858, 'R': 777, 'L': 765})
+# Counter({'T': 0.3575, 'R': 0.32375, 'L': 0.31875})
