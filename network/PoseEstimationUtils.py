@@ -76,7 +76,7 @@ def filterFencingPlayers(coords_point_pair_arr):
         ind1_by_size, ind2_by_size = getTwoClosestValuesInArr(players_size_mean)
         ind1_by_y_loc, ind2_by_y_loc = getTwoClosestValuesInArr(players_y_mean)
 
-        assert(set([ind1_by_size, ind2_by_size]) == set([ind1_by_y_loc, ind2_by_y_loc]))
+        #assert(set([ind1_by_size, ind2_by_size]) == set([ind1_by_y_loc, ind2_by_y_loc]))
         #fencing_players_ind = np.argsort(np.array([np.count_nonzero(p_arr == 0.) for p_arr in curr_fencing_players_coords]))[:2]
 
         fencing_players_ind = np.array([ind1_by_size, ind2_by_size])
@@ -85,13 +85,16 @@ def filterFencingPlayers(coords_point_pair_arr):
     return fencing_players_point_pair_coords
 
 
-def load_people_point_pose_arr(file):
-    people_dict = json.load(file)['people']
-    people_point_pose_arr = np.array([np.array(p['pose_keypoints_2d']) for p in people_dict])
-    people_num = people_point_pose_arr.shape[0]
-    people_point_pose_arr = people_point_pose_arr.reshape(people_num, NUM_POINTS, 3)
-    people_point_pose_confidence_arr = people_point_pose_arr[:, :, -1]
-    people_point_pose_arr = people_point_pose_arr[:, :, :2]
+def load_people_point_pose_arr(file_path):
+
+    with (open(file_path, "rb")) as file:
+        people_dict = json.load(file)['people']
+        people_point_pose_arr = np.array([np.array(p['pose_keypoints_2d']) for p in people_dict])
+        people_num = people_point_pose_arr.shape[0]
+        people_point_pose_arr = people_point_pose_arr.reshape(people_num, NUM_POINTS, 3)
+        people_point_pose_confidence_arr = people_point_pose_arr[:, :, -1]
+        people_point_pose_arr = people_point_pose_arr[:, :, :2]
+
     return people_point_pose_arr, people_point_pose_confidence_arr
 
 

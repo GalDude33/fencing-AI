@@ -76,17 +76,16 @@ class Dataset(torchdata.Dataset):
 
     def getFencingPlayersPoseArr(self, descriptor_file):
 
-        with (open(descriptor_file, "rb")) as file:
-            people_point_pose_arr, _ = load_people_point_pose_arr(file)
-            # filter 2 fencing players and sort them
-            coords_point_pair_arr = convert_points_to_lines(people_point_pose_arr)
-            fencing_players_coords = filterFencingPlayers(coords_point_pair_arr)
+        people_point_pose_arr, _ = load_people_point_pose_arr(descriptor_file)
+        # filter 2 fencing players and sort them
+        coords_point_pair_arr = convert_points_to_lines(people_point_pose_arr)
+        fencing_players_coords = filterFencingPlayers(coords_point_pair_arr)
 
-            if len(fencing_players_coords) == 2:#TODO: deal also with less than 2 people
-                fencing_players_coords = sort_fencing_players(fencing_players_coords)
+        if len(fencing_players_coords) == 2:#TODO: deal also with less than 2 people
+            fencing_players_coords = sort_fencing_players(fencing_players_coords)
 
-            # add normalization#TODO- deal better with normaliztion
-            fencing_players_coords = normalize_point_pair_pose_arr(fencing_players_coords)
+        # add normalization#TODO- deal better with normaliztion
+        fencing_players_coords = normalize_point_pair_pose_arr(fencing_players_coords)
 
         return fencing_players_coords
 
