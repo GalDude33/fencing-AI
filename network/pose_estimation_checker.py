@@ -25,6 +25,7 @@ clips_path = '/media/rabkinda/Gal_Backup/fencing/clips*/*.mp4'
 json_path = '/media/rabkinda/DATA/fencing/FinalPoseEstimationResults/jsons*/*.json'
 pickle_file = Path('network/train_val_test_splitter/'+mode+'.pickle')
 n = 5
+img_shape = (1280, 720)
 
 if pickle_file.is_file():
     with open(pickle_file, 'rb') as f:
@@ -43,8 +44,8 @@ if pickle_file.is_file():
 
         cap = CV2VideoCapture(clip_path)
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(os.path.join(output_dir, clip_name)+'.mp4', fourcc, 20.0, IMG_SHAPE)
-        out_all = cv2.VideoWriter(os.path.join(output_dir, clip_name+'_all')+'.mp4', fourcc, 20.0, IMG_SHAPE)
+        out = cv2.VideoWriter(os.path.join(output_dir, clip_name)+'.mp4', fourcc, 20.0, img_shape)
+        out_all = cv2.VideoWriter(os.path.join(output_dir, clip_name+'_all')+'.mp4', fourcc, 20.0, img_shape)
         seq_len = pose_point_coords_arr.shape[0]
 
         for seq_ind in range(seq_len):
