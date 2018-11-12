@@ -166,6 +166,22 @@ def plot_from_pose_coords(img_orig, coords_arr, bool_fast_plot=True, plot_ear_to
     return to_plot, canvas
 
 
+def getFencingPlayersPoseArr(descriptor_file):
+
+    people_point_pose_arr, _ = load_people_point_pose_arr(descriptor_file)
+    # filter 2 fencing players and sort them
+    coords_point_pair_arr = convert_points_to_lines(people_point_pose_arr)
+    fencing_players_coords = filterFencingPlayers(coords_point_pair_arr)
+
+    if len(fencing_players_coords) == 2:#TODO: deal also with less than 2 people
+        fencing_players_coords = sort_fencing_players(fencing_players_coords)
+
+    # add normalization#TODO- deal better with normaliztion
+    fencing_players_coords = normalize_point_pair_pose_arr(fencing_players_coords)
+
+    return fencing_players_coords
+
+
 def getTwoClosestValuesInArr(arr):
     map = {}
 

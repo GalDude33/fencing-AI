@@ -1,17 +1,16 @@
+import glob
+import os
+import pickle
 import random
+import re
+from multiprocessing.dummy import Pool
+from pathlib import Path
 import numpy as np
 import torch
 import torch.utils.data as torchdata
-import glob
-import os
-import re
-from network.PoseEstimationUtils import convert_points_to_lines, filterFencingPlayers, NUM_LIMBS, \
-    load_people_point_pose_arr, sort_fencing_players, normalize_point_pair_pose_arr
-from network.utils import get_label_from_letter
 from tqdm import tqdm
-from pathlib import Path
-import pickle
-from multiprocessing.dummy import Pool
+from network.PoseEstimationUtils import NUM_LIMBS, getFencingPlayersPoseArr
+from network.utils import get_label_from_letter
 
 
 class Dataset(torchdata.Dataset):
@@ -46,7 +45,7 @@ class Dataset(torchdata.Dataset):
                     relevant_files.append(descriptor_file)
 
             with Pool(max_parallel) as pool:
-                res = list(tqdm(pool.imap(self.getFencingPlayersPoseArr, relevant_files, chunksize=20), total=len(relevant_files)))
+                res = list(tqdm(pool.imap(getFencingPlayersPoseArr, relevant_files, chunksize=20), total=len(relevant_files)))
 
             for i, curr_res in enumerate(res):
                 curr_file_path = relevant_files[i]
@@ -72,22 +71,6 @@ class Dataset(torchdata.Dataset):
 
         if mode=='train':
             random.shuffle(self.objects)
-
-
-    def getFencingPlayersPoseArr(self, descriptor_file):
-
-        people_point_pose_arr, _ = load_people_point_pose_arr(descriptor_file)
-        # filter 2 fencing players and sort them
-        coords_point_pair_arr = convert_points_to_lines(people_point_pose_arr)
-        fencing_players_coords = filterFencingPlayers(coords_point_pair_arr)
-
-        if len(fencing_players_coords) == 2:#TODO: deal also with less than 2 people
-            fencing_players_coords = sort_fencing_players(fencing_players_coords)
-
-        # add normalization#TODO- deal better with normaliztion
-        fencing_players_coords = normalize_point_pair_pose_arr(fencing_players_coords)
-
-        return fencing_players_coords
 
 
     def __getitem__(self, index):
