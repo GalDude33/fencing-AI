@@ -26,14 +26,18 @@ json_path = '/media/rabkinda/DATA/fencing/FinalPoseEstimationResults/jsons*/*.js
 pickle_file = Path('network/train_val_test_splitter/'+mode+'.pickle')
 n = 5
 img_shape = (1280, 720)
+trg_clip_name = None
 
 if pickle_file.is_file():
     with open(pickle_file, 'rb') as f:
         objects = pickle.load(f)
 
-    chosen_objects = random.sample(objects, n)
+    if trg_clip_name is None:
+        chosen_objects = random.sample(objects, n)
+    else:
+        chosen_objects = [obj for obj in objects if trg_clip_name == obj[2]]
 
-    for i in range(n):
+    for i in range(len(chosen_objects)):
         chosen_object = chosen_objects[i]
         pose_point_coords_arr = chosen_object[0].numpy()
 
