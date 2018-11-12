@@ -13,7 +13,7 @@ from network.dataloader import Dataset
 from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, accuracy, check_grad
 
 
-batch_size = 5
+batch_size = 64
 workers = 2
 use_cuda = True
 learning_rate = 1e-4
@@ -34,8 +34,8 @@ train_loader = torch.utils.data.DataLoader(train_dataset,
                          pin_memory=True,
                          shuffle=True)
 
-valid_dataset = Dataset(is_train=0, txt_path='train_val_test_splitter/val.txt')
-valid_loader = torch.utils.data.DataLoader(valid_dataset,
+test_dataset = Dataset(mode='test', txt_path='train_val_test_splitter/test.txt')
+test_loader = torch.utils.data.DataLoader(test_dataset,
                          batch_size=batch_size,
                          num_workers=workers,
                          pin_memory=True)
@@ -119,8 +119,9 @@ def evaluate(model, criterion, epoch, writer):
     loss_avg = total / len(valid_loader)
     acc_avg = acc_meter.average() * 100
 
-    writer.add_scalar('Loss_Avg/Val', loss_avg, epoch)
-    writer.add_scalar('Precision_Avg/Val', acc_avg, epoch)
+    if writer is not None:
+        writer.add_scalar('Loss_Avg/Val', loss_avg, epoch)
+        writer.add_scalar('Precision_Avg/Val', acc_avg, epoch)
     avg_dist_arr = output_count_meter.get_distribution()
     print('====> Total validation set loss: {:.4f}, acc: {:.4f}, dist: ({:.4f}, {:.4f}, {:.4f})'.format(loss_avg, acc_avg, *avg_dist_arr))
     return loss_avg, acc_avg
@@ -181,6 +182,12 @@ def main():
 
     writer.close()
     print(json.dumps(best_val_err_full_info, indent=4, sort_keys=True))
+
+    print('Running Test\n')
+    model.load_state_dict(torch.load('%s/bestmodel.pth' % (expName)))
+    test_avg_loss, test_avg_acc = evaluate(model, criterion, epoch, None)
+    print('====> Total test set loss: {:.4f}, acc: {:.4f}'.format(test_avg_loss, test_avg_acc))
+
     print('startTime=' + str(startTime))
     print('endTime=' + str(datetime.now()))
 
