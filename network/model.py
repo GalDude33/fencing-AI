@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
+from network.PoseEstimationUtils import NUM_LIMBS
 
 
 class FencingModel(nn.Module):
@@ -11,8 +12,8 @@ class FencingModel(nn.Module):
         self.rnn_type = 'lstm'#opt.rnn_type
         self.rnn_size = 128#opt.rnn_size
         self.num_layers = 1#opt.num_layers
-        self.drop_prob_lm = 0#opt.drop_prob_lm
-        self.input_size = 2 * 17 * 2 * 2
+        self.drop_prob_lm = 0.5#opt.drop_prob_lm
+        self.input_size = 2 * NUM_LIMBS * 2 * 2
 
         self.rnn = getattr(
             nn,
