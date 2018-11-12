@@ -1,4 +1,5 @@
 import numpy as np
+import json
 
 
 # Heatmap indices to find each limb (joint connection). Eg: limb_type=1 is
@@ -38,6 +39,8 @@ colors =    [   [255,     0,    85],
                 [0, 255, 255]]
 
 NUM_LIMBS = len(joint_to_limb_heatmap_relationship)
+NUM_POINTS = 25
+IMG_SHAPE=(1280.0, 720.0)
 
 
 def convert_points_to_lines(coords_point_arr):
@@ -78,6 +81,33 @@ def filterFencingPlayers(coords_point_pair_arr):
         fencing_players_point_pair_coords = fencing_players_point_pair_coords[fencing_players_ind]
 
     return fencing_players_point_pair_coords
+
+
+def load_people_point_pose_arr(file):
+    people_dict = json.load(file)['people']
+    people_point_pose_arr = np.array([np.array(p['pose_keypoints_2d']) for p in people_dict])
+    people_num = people_point_pose_arr.shape[0]
+    people_point_pose_arr = people_point_pose_arr.reshape(people_num, NUM_POINTS, 3)
+    people_point_pose_confidence_arr = people_point_pose_arr[:, :, -1]
+    people_point_pose_arr = people_point_pose_arr[:, :, :2]
+    return people_point_pose_arr, people_point_pose_confidence_arr
+
+
+def sort_fencing_players(fencing_players_coords):
+    # verify left, right side of players
+    first_player_x_mean = np.mean(fencing_players_coords[0, :, :, 0])
+    second_player_x_mean = np.mean(fencing_players_coords[1, :, :, 0])
+
+    if first_player_x_mean > second_player_x_mean:
+        fencing_players_coords = fencing_players_coords[::-1]
+
+    return fencing_players_coords
+
+
+def normalize_point_pair_pose_arr(fencing_players_coords):
+    fencing_players_coords[:, :, :, 0] = fencing_players_coords[:, :, :, 0] / IMG_SHAPE[0]
+    fencing_players_coords[:, :, :, 1] = fencing_players_coords[:, :, :, 1] / IMG_SHAPE[1]
+    return fencing_players_coords
 
 
 def getTwoClosestValuesInArr(arr):
