@@ -15,7 +15,7 @@ checkpoint = 'fencing_exp/bestmodel.pth'
 labels_arr = np.array([0, 1, 2])
 device = torch.device("cuda" if use_cuda else "cpu")
 
-test_dataset = Dataset(is_train=0, txt_path='train_val_test_splitter/test.txt')
+test_dataset = Dataset(mode='test', txt_path='train_val_test_splitter/test.txt')
 test_loader = torch.utils.data.DataLoader(test_dataset,
                                           batch_size=batch_size,
                                           num_workers=workers,
