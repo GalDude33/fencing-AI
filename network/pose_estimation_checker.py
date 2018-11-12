@@ -16,6 +16,11 @@ def getPoseEstimationImgFromCoordinatesByArr(oriImg, coords_arr, multiplyByImgSi
     #cv2.imwrite('result.png', to_plot)
     return to_plot
 
+font = cv2.FONT_HERSHEY_SIMPLEX
+topLeftCornerOfText = (50, 110)
+fontScale = 1
+fontColor = (255, 255, 255)
+lineType = 2
 
 mode = 'val'
 output_dir = '/media/rabkinda/DATA/fencing/pose_estimation_checker'
@@ -52,6 +57,8 @@ for i in range(len(chosen_objects)):
         curr_all_people_point_pair_pose_arr = convert_points_to_lines(curr_all_people_point_pose_arr).astype(np.float32)
 
         curr_frame_img = cap.read()
+        cv2.putText(curr_frame_img, str(seq_ind), topLeftCornerOfText, font, fontScale, fontColor, lineType)
+
         curr_frame_with_chosen_poses = getPoseEstimationImgFromCoordinatesByArr(curr_frame_img, curr_fencing_players_coords, True)
         curr_frame_with_all_poses = getPoseEstimationImgFromCoordinatesByArr(curr_frame_img, curr_all_people_point_pair_pose_arr, False)
         out.write(curr_frame_with_chosen_poses)
