@@ -1,5 +1,7 @@
 import numpy as np
 import json
+import cv2
+import math
 
 
 # Heatmap indices to find each limb (joint connection). Eg: limb_type=1 is
@@ -108,6 +110,57 @@ def normalize_point_pair_pose_arr(fencing_players_coords):
     fencing_players_coords[:, :, :, 0] = fencing_players_coords[:, :, :, 0] / IMG_SHAPE[0]
     fencing_players_coords[:, :, :, 1] = fencing_players_coords[:, :, :, 1] / IMG_SHAPE[1]
     return fencing_players_coords
+
+
+def plot_from_pose_coords(img_orig, coords_arr, bool_fast_plot=True, plot_ear_to_shoulder=False):
+    canvas = img_orig.copy()  # Make a copy so we don't modify the original image
+
+    # to_plot is the location of all joints found overlaid on top of the
+    # original image
+    to_plot = canvas.copy() if bool_fast_plot else cv2.addWeighted(
+        img_orig, 0.3, canvas, 0.7, 0)
+
+    limb_thickness = 4
+    # Last 2 limbs connect ears with shoulders and this looks very weird.
+    # Disabled by default to be consistent with original rtpose output
+    which_limbs_to_plot = NUM_LIMBS# if plot_ear_to_shoulder else NUM_LIMBS - 2
+    for limb_type in range(which_limbs_to_plot):
+        for person_ind, person_joint_info in enumerate(coords_arr):
+            # joint_indices = person_joint_info[joint_to_limb_heatmap_relationship[limb_type]].astype(
+            #    int)
+            # if -1 in joint_indices:
+            # Only draw actual limbs (connected joints), skip if not
+            # connected
+            # continue
+            # joint_coords[:,0] represents Y coords of both joints;
+            # joint_coords[:,1], X coords
+            joint_coords = coords_arr[person_ind, limb_type]  # joint_list[joint_indices, 0:2]
+
+            for joint in joint_coords:  # Draw circles at every joint
+                cv2.circle(canvas, tuple(joint[0:2].astype(
+                    int)), 4, (255, 255, 255), thickness=-1)
+                # mean along the axis=0 computes meanYcoord and meanXcoord -> Round
+            # and make int to avoid errors
+            coords_center = tuple(
+                np.round(np.mean(joint_coords, 0)).astype(int))
+            # joint_coords[0,:] is the coords of joint_src; joint_coords[1,:]
+            # is the coords of joint_dst
+            limb_dir = joint_coords[0, :] - joint_coords[1, :]
+            limb_length = np.linalg.norm(limb_dir)
+            # Get the angle of limb_dir in degrees using atan2(limb_dir_x,
+            # limb_dir_y)
+            angle = math.degrees(math.atan2(limb_dir[1], limb_dir[0]))
+
+            # For faster plotting, just plot over canvas instead of constantly
+            # copying it
+            cur_canvas = canvas if bool_fast_plot else canvas.copy()
+            polygon = cv2.ellipse2Poly(
+                coords_center, (int(limb_length / 2), limb_thickness), int(angle), 0, 360, 1)
+            cv2.fillConvexPoly(cur_canvas, polygon, colors[limb_type])
+            if not bool_fast_plot:
+                canvas = cv2.addWeighted(canvas, 0.4, cur_canvas, 0.6, 0)
+
+    return to_plot, canvas
 
 
 def getTwoClosestValuesInArr(arr):
