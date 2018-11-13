@@ -5,7 +5,8 @@ import cv2
 import numpy as np
 from VideoUtils import CV2VideoCapture
 import glob
-from network.PoseEstimationUtils import convert_points_to_lines, plot_from_pose_coords, load_people_point_pose_arr, getFencingPlayersPoseArr
+from network.PoseEstimationUtils import convert_points_to_lines, plot_from_pose_coords, load_people_point_pose_arr, \
+    getFencingPlayersPoseArr, NUM_LIMBS, repairFencingPlayersPoses
 
 
 def getPoseEstimationImgFromCoordinatesByArr(oriImg, coords_arr, multiplyByImgSize=False):
@@ -51,8 +52,14 @@ for i in range(len(chosen_objects)):
     out = cv2.VideoWriter(os.path.join(output_dir, clip_name) + '.mp4', fourcc, 20.0, img_shape)
     out_all = cv2.VideoWriter(os.path.join(output_dir, clip_name + '_all') + '.mp4', fourcc, 20.0, img_shape)
 
+    fencing_players_coords = np.zeros((seq_len, 2, NUM_LIMBS, 2, 2))
     for seq_ind in range(seq_len):
-        curr_fencing_players_coords = getFencingPlayersPoseArr(json_paths[seq_ind])
+        fencing_players_coords[seq_ind] = getFencingPlayersPoseArr(json_paths[seq_ind])
+
+    fencing_players_coords = repairFencingPlayersPoses(fencing_players_coords)
+
+    for seq_ind in range(seq_len):
+        curr_fencing_players_coords = fencing_players_coords[seq_ind]
 
         curr_all_people_point_pose_arr, curr_all_people_point_pose_confidence_arr = load_people_point_pose_arr(json_paths[seq_ind])
         curr_all_people_point_pair_pose_arr = convert_points_to_lines(curr_all_people_point_pose_arr).astype(np.float32)
@@ -60,7 +67,7 @@ for i in range(len(chosen_objects)):
         curr_frame_img = cap.read()
         cv2.putText(curr_frame_img, str(seq_ind), topLeftCornerOfText, font, fontScale, fontColor, lineType)
 
-        curr_frame_with_chosen_poses = getPoseEstimationImgFromCoordinatesByArr(curr_frame_img, curr_fencing_players_coords, True)
+        curr_frame_with_chosen_poses = getPoseEstimationImgFromCoordinatesByArr(curr_frame_img, curr_fencing_players_coords, False)
         curr_frame_with_all_poses = getPoseEstimationImgFromCoordinatesByArr(curr_frame_img, curr_all_people_point_pair_pose_arr, False)
         out.write(curr_frame_with_chosen_poses)
         out_all.write(curr_frame_with_all_poses)

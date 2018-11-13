@@ -66,12 +66,12 @@ def filterFencingPlayers(coords_point_pair_arr):
     fencing_players_point_pair_coords = coords_point_pair_arr
 
     if len(coords_point_pair_arr) > 2:
-        players_size_mean = np.average(np.sum(np.abs(coords_point_pair_arr[:, :, 0] - coords_point_pair_arr[:, :, 1]), 2), 1)
+        players_size_mean = np.sum(np.abs(coords_point_pair_arr[:, 0, 0] - coords_point_pair_arr[:, 0, 1]), 1)
         fencing_players_ind = np.argsort(players_size_mean)[-3:]
         fencing_players_point_pair_coords = coords_point_pair_arr[fencing_players_ind]
 
         players_size_mean = players_size_mean[fencing_players_ind]
-        players_y_mean = np.mean(np.mean(fencing_players_point_pair_coords[:, :, :, 1], 1), 1)
+        players_y_mean = np.mean(fencing_players_point_pair_coords[:, 0, :, 1], 1)
 
         ind1_by_size, ind2_by_size = getTwoClosestValuesInArr(players_size_mean)
         ind1_by_y_loc, ind2_by_y_loc = getTwoClosestValuesInArr(players_y_mean)
@@ -79,10 +79,93 @@ def filterFencingPlayers(coords_point_pair_arr):
         #assert(set([ind1_by_size, ind2_by_size]) == set([ind1_by_y_loc, ind2_by_y_loc]))
         #fencing_players_ind = np.argsort(np.array([np.count_nonzero(p_arr == 0.) for p_arr in curr_fencing_players_coords]))[:2]
 
-        fencing_players_ind = np.array([ind1_by_size, ind2_by_size])
+        fencing_players_ind = np.array([ind1_by_y_loc, ind2_by_y_loc])
         fencing_players_point_pair_coords = fencing_players_point_pair_coords[fencing_players_ind]
 
     return fencing_players_point_pair_coords
+
+
+def repairFencingPlayersPoses(fencing_players_coords):
+    _fencing_players_coords = fencing_players_coords
+    max_delta_x = 300.0
+    max_delta_y = 125.0
+    seq_len = _fencing_players_coords.shape[0]
+
+    y_mean_player1 = np.mean(_fencing_players_coords[:, 0, 0, :, 1])
+    #x_mean_player1 = np.mean(_fencing_players_coords[:, 0, 0, :, 0])
+    y_mean_player2 = np.mean(_fencing_players_coords[:, 1, 0, :, 1])
+    #x_mean_player2 = np.mean(_fencing_players_coords[:, 1, 0, :, 0])
+
+    frames_to_repair_for_player1 = []
+    frames_to_repair_for_player2 = []
+
+    for seq_ind in range(seq_len):
+        curr_frame_y_mean_player1 = np.mean(_fencing_players_coords[seq_ind, 0, 0, :, 1])
+        #curr_frame_x_mean_player1 = np.mean(_fencing_players_coords[seq_ind, 0, 0, :, 0])
+        curr_frame_y_mean_player2 = np.mean(_fencing_players_coords[seq_ind, 1, 0, :, 1])
+        #curr_frame_x_mean_player2 = np.mean(_fencing_players_coords[seq_ind, 1, 0, :, 0])
+
+        if np.abs(curr_frame_y_mean_player1 - y_mean_player1) > max_delta_y:
+            frames_to_repair_for_player1.append(seq_ind)
+        #if np.abs(curr_frame_x_mean_player1 - x_mean_player1) > max_delta_x:
+        #    frames_to_repair_for_player1.append(seq_ind)
+        if np.abs(curr_frame_y_mean_player2 - y_mean_player2) > max_delta_y:
+            frames_to_repair_for_player2.append(seq_ind)
+        #if np.abs(curr_frame_x_mean_player2 - x_mean_player2) > max_delta_x:
+        #    frames_to_repair_for_player2.append(seq_ind)
+
+    frames_to_repair_for_player1 = list(set(frames_to_repair_for_player1))
+    frames_to_repair_for_player2 = list(set(frames_to_repair_for_player2))
+    frames_to_repair_for_player1.sort()
+    frames_to_repair_for_player2.sort()
+
+    frames_to_repair_for_player1_copy = frames_to_repair_for_player1.copy()
+    frames_to_repair_for_player2_copy = frames_to_repair_for_player2.copy()
+
+    for seq_ind in frames_to_repair_for_player1:
+        start_frame_to_count, end_frame_to_count = -1, -1
+
+        for j in range(seq_ind-1, -1, -1):
+            if j not in frames_to_repair_for_player1_copy:
+                start_frame_to_count = j
+                break
+
+        for k in range(seq_ind+1, seq_len, 1):
+            if k not in frames_to_repair_for_player1_copy:
+                end_frame_to_count = k
+                break
+
+        if start_frame_to_count != -1 and end_frame_to_count != -1:
+            gap = end_frame_to_count-start_frame_to_count
+            gap1 = seq_ind-start_frame_to_count
+            _fencing_players_coords[seq_ind, 0] = _fencing_players_coords[start_frame_to_count, 0]+ \
+                                                  gap1*((_fencing_players_coords[end_frame_to_count, 0]-_fencing_players_coords[start_frame_to_count, 0])/gap)
+
+            #frames_to_repair_for_player1_copy.remove(seq_ind)
+
+
+    for seq_ind in frames_to_repair_for_player2:
+        start_frame_to_count, end_frame_to_count = -1, -1
+
+        for j in range(seq_ind-1, -1, -1):
+            if j not in frames_to_repair_for_player2_copy:
+                start_frame_to_count = j
+                break
+
+        for k in range(seq_ind+1, seq_len, 1):
+            if k not in frames_to_repair_for_player2_copy:
+                end_frame_to_count = k
+                break
+
+        if start_frame_to_count!=-1 and end_frame_to_count!=-1:
+            gap = end_frame_to_count-start_frame_to_count
+            gap1 = seq_ind - start_frame_to_count
+            _fencing_players_coords[seq_ind, 1] = _fencing_players_coords[start_frame_to_count, 1]+ \
+                                                  gap1*((_fencing_players_coords[end_frame_to_count, 1]-_fencing_players_coords[start_frame_to_count, 1])/gap)
+
+            #frames_to_repair_for_player2_copy.remove(seq_ind)
+
+    return _fencing_players_coords
 
 
 def load_people_point_pose_arr(file_path):
