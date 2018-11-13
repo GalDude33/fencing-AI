@@ -31,9 +31,10 @@ n = 5
 img_shape = (1280, 720)
 trg_clip_name = '00BoW1USRjA-41-T-21846'#None
 
+clip_paths = [f for f in glob.glob(clips_path) if 'None' not in f]
 
 if trg_clip_name is None:
-    chosen_objects = random.sample(clips_path, n)
+    chosen_objects = random.sample(clip_paths, n)
     chosen_objects = [Path(obj).stem for obj in chosen_objects]
 else:
     chosen_objects = [trg_clip_name]
@@ -41,7 +42,7 @@ else:
 for i in range(len(chosen_objects)):
     clip_name = chosen_objects[i]
 
-    clip_path = [f for f in glob.glob(clips_path) if clip_name in f][0]
+    clip_path = [f for f in clip_paths if clip_name in f][0]
     json_paths = [f for f in glob.glob(json_path) if clip_name in f]
     json_paths.sort()
 
