@@ -6,7 +6,7 @@ import numpy as np
 from VideoUtils import CV2VideoCapture
 import glob
 from network.PoseEstimationUtils import convert_points_to_lines, plot_from_pose_coords, load_people_point_pose_arr, \
-    getFencingPlayersPoseArr, NUM_LIMBS, repairFencingPlayersPoses
+    getFencingPlayersPoseArr
 
 
 def getPoseEstimationImgFromCoordinatesByArr(oriImg, coords_arr, multiplyByImgSize=False):
@@ -30,7 +30,7 @@ json_path = '/media/rabkinda/DATA/fencing/FinalPoseEstimationResults/jsons*/*.js
 seq_len = 60
 n = 5
 img_shape = (1280, 720)
-trg_clip_name = '00BoW1USRjA-41-T-21846'#None
+trg_clip_name = None
 
 clip_paths = [f for f in glob.glob(clips_path) if 'None' not in f]
 
@@ -52,11 +52,7 @@ for i in range(len(chosen_objects)):
     out = cv2.VideoWriter(os.path.join(output_dir, clip_name) + '.mp4', fourcc, 20.0, img_shape)
     out_all = cv2.VideoWriter(os.path.join(output_dir, clip_name + '_all') + '.mp4', fourcc, 20.0, img_shape)
 
-    fencing_players_coords = np.zeros((seq_len, 2, NUM_LIMBS, 2, 2))
-    for seq_ind in range(seq_len):
-        fencing_players_coords[seq_ind] = getFencingPlayersPoseArr(json_paths[seq_ind])
-
-    fencing_players_coords = repairFencingPlayersPoses(fencing_players_coords)
+    fencing_players_coords = getFencingPlayersPoseArr(json_paths)
 
     for seq_ind in range(seq_len):
         curr_fencing_players_coords = fencing_players_coords[seq_ind]
