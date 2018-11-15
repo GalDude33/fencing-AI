@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.utils.data as torchdata
 from tqdm import tqdm
-from network.PoseEstimationUtils import NUM_LIMBS, getFencingPlayersPoseArr
+from network.PoseEstimationUtils import getFencingPlayersPoseArr, normalize_point_pair_pose_arr
 from network.utils import get_label_from_letter
 
 
@@ -28,9 +28,8 @@ class Dataset(torchdata.Dataset):
             with open(pickle_file, 'rb') as f:
                 self.objects = pickle.load(f)
         else:
-            max_parallel = 16
-            relevant_files = []
-            frames_num = 60
+            max_parallel = 8
+            relevant_files = {}
 
             for descriptor_file in descriptor_files:
                 if any(vid_filter for vid_filter in video_names_to_filter if vid_filter in descriptor_file):
@@ -42,23 +41,22 @@ class Dataset(torchdata.Dataset):
                         if int(curr_clip_num) == 0:
                             continue
 
-                    relevant_files.append(descriptor_file)
+                    if curr_clip_name not in relevant_files:
+                        relevant_files[curr_clip_name] = []
+                    relevant_files[curr_clip_name].append(descriptor_file)
 
             with Pool(max_parallel) as pool:
-                res = list(tqdm(pool.imap(getFencingPlayersPoseArr, relevant_files, chunksize=20), total=len(relevant_files)))
+                inputForPool = [v for v in relevant_files.values()]
+                res = list(tqdm(pool.imap(getFencingPlayersPoseArr, inputForPool, chunksize=20), total=len(inputForPool)))
 
             for i, curr_res in enumerate(res):
-                curr_file_path = relevant_files[i]
+                curr_file_path = inputForPool[i][0]
                 curr_clip_name, curr_clip_num, curr_label, curr_frame_ind = self.getClipInfoFromFilename(curr_file_path)
 
-                if curr_clip_name in self.objectsMap:
-                    curr_clip_tuple = self.objectsMap[curr_clip_name]
-                else:
-                    curr_clip_tuple = (np.zeros((frames_num, 2, NUM_LIMBS, 2, 2), dtype=np.float32), curr_label)
-                    self.objectsMap[curr_clip_name] = curr_clip_tuple
+                # add normalization#TODO- deal better with normalization
+                curr_res = normalize_point_pair_pose_arr(curr_res)
 
-                if curr_res.shape==(2, NUM_LIMBS, 2, 2):#TODO: change it eventually!!
-                    curr_clip_tuple[0][curr_frame_ind] = curr_res
+                self.objectsMap[curr_clip_name] = (curr_res, curr_label)
 
             for clip in self.objectsMap.keys():
                 curr_clip_tuple = self.objectsMap[clip]
@@ -75,7 +73,7 @@ class Dataset(torchdata.Dataset):
 
     def __getitem__(self, index):
         video_dsc, label, base_clip_name = self.objects[index]
-        video_dsc = video_dsc.view(video_dsc.size(0), -1)
+        video_dsc = video_dsc.view(video_dsc.size(0), -1).float()
         return video_dsc, label, base_clip_name
 
 
