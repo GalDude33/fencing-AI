@@ -415,7 +415,7 @@ def getFencingPlayersPoseArr(descriptor_files):
         all_coords_point_pair_lst.append(coords_point_pair_arr)
         all_people_point_pose_confidence_lst.append(people_point_pose_confidence_arr)
 
-    fencing_players_coords = filterFencingPlayers(all_coords_point_pair_lst, all_people_point_pose_confidence_lst)#TODO: delete sort from name
+    fencing_players_coords = filterFencingPlayers(all_coords_point_pair_lst, all_people_point_pose_confidence_lst)
 
     fencing_players_coords = sort_fencing_players(fencing_players_coords)
     fencing_players_coords = repairFencingPlayersPoses(fencing_players_coords)
