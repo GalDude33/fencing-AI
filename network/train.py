@@ -7,13 +7,12 @@ from tqdm import tqdm
 import os
 import json
 import numpy as np
-
 from network.model import FencingModel
 from network.dataloader import Dataset
 from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, accuracy, check_grad
 
 
-batch_size = 64
+batch_size = 128
 workers = 2
 use_cuda = True
 learning_rate = 1e-4
@@ -36,6 +35,12 @@ valid_loader = torch.utils.data.DataLoader(valid_dataset,
                          num_workers=workers,
                          pin_memory=True)
 
+test_dataset = Dataset(mode='test', txt_path='network/train_val_test_splitter/test.txt', descriptor_dir=descriptor_dir)
+test_loader = torch.utils.data.DataLoader(test_dataset,
+                         batch_size=batch_size,
+                         num_workers=workers,
+                         pin_memory=True)
+
 train_dataset = Dataset(mode='train', txt_path='network/train_val_test_splitter/train.txt', descriptor_dir=descriptor_dir)
 train_loader = torch.utils.data.DataLoader(train_dataset,
                          batch_size=batch_size,
@@ -43,19 +48,13 @@ train_loader = torch.utils.data.DataLoader(train_dataset,
                          pin_memory=True,
                          shuffle=True)
 
-test_dataset = Dataset(mode='test', txt_path='network/train_val_test_splitter/test.txt', descriptor_dir=descriptor_dir)
-test_loader = torch.utils.data.DataLoader(test_dataset,
-                         batch_size=batch_size,
-                         num_workers=workers,
-                         pin_memory=True)
-
 
 def train(model, criterion, optimizer, epoch, writer):
     model.train()
     total = 0   # Reset every plot_every
     acc_meter = AverageMeter()
     output_count_meter = BinCounterMeter(labels_arr)
-    train_enum = tqdm(train_loader, desc='Train epoch %d' % epoch)
+    train_enum = train_loader#tqdm(train_loader, desc='Train epoch %d' % epoch)
 
     for pose_dsc, label, _ in train_enum:
         pose_dsc, label = pose_dsc.to(device), label.to(device)
@@ -101,12 +100,12 @@ def train(model, criterion, optimizer, epoch, writer):
     return loss_avg, acc_avg
 
 
-def evaluate(model, criterion, epoch, writer):
+def evaluate(model, criterion, epoch, writer, loader):
     model.eval()
     total = 0
     acc_meter = AverageMeter()
     output_count_meter = BinCounterMeter(labels_arr)
-    valid_enum = tqdm(valid_loader, desc='Valid epoch %d' % epoch)
+    valid_enum = loader #tqdm(loader, desc='Valid epoch %d' % epoch)
 
     with torch.no_grad():
         for pose_dsc, label, _ in valid_enum:
@@ -132,7 +131,7 @@ def evaluate(model, criterion, epoch, writer):
         writer.add_scalar('Loss_Avg/Val', loss_avg, epoch)
         writer.add_scalar('Precision_Avg/Val', acc_avg, epoch)
     avg_dist_arr = output_count_meter.get_distribution()
-    print('====> Total validation set loss: {:.4f}, acc: {:.4f}, dist: ({:.4f}, {:.4f}, {:.4f})'.format(loss_avg, acc_avg, *avg_dist_arr))
+    print('====> Total valid set loss: {:.4f}, acc: {:.4f}, dist: ({:.4f}, {:.4f}, {:.4f})\n'.format(loss_avg, acc_avg, *avg_dist_arr))
     return loss_avg, acc_avg
 
 
@@ -155,7 +154,8 @@ def main():
 
         model.load_state_dict(torch.load(checkpoint))
 
-    criterion = nn.NLLLoss().to(device)
+    weights = None
+    criterion = nn.NLLLoss(weight=weights).to(device)
 
     best_eval = float('inf')
     best_val_err_full_info = {}
@@ -174,7 +174,7 @@ def main():
                 adjust_learning_rate(optimizer, 0.6)
 
         train_avg_loss, train_avg_acc = train(model, criterion, optimizer, epoch, writer)
-        val_avg_loss, val_avg_acc = evaluate(model, criterion, epoch, writer)
+        val_avg_loss, val_avg_acc = evaluate(model, criterion, epoch, writer, valid_loader)
 
         if val_avg_loss < best_eval:
             torch.save(model.state_dict(), '%s/bestmodel.pth' % (expName))
@@ -194,7 +194,7 @@ def main():
 
     print('Running Test\n')
     model.load_state_dict(torch.load('%s/bestmodel.pth' % (expName)))
-    test_avg_loss, test_avg_acc = evaluate(model, criterion, epoch, None)
+    test_avg_loss, test_avg_acc = evaluate(model, criterion, epoch, None, test_loader)
     print('====> Total test set loss: {:.4f}, acc: {:.4f}'.format(test_avg_loss, test_avg_acc))
 
     print('startTime=' + str(startTime))
