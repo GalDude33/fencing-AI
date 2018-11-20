@@ -63,9 +63,16 @@ def convert_points_to_lines(coords_point_arr):
 
 
 def find_previous_frame_with_two_players(all_fencing_players_point_pair_coords, seq_ind):
-    for j in range(seq_ind, -1, -1):
+    # find previous frame with two players but look maximum 10 frames backward,
+    # if not return previous frame with one player, if not return -1
+    for j in range(seq_ind, seq_ind-10, -1):
         if get_players_num(all_fencing_players_point_pair_coords[j])==2:
             return j
+
+    for j in range(seq_ind, seq_ind-10, -1):
+        if get_players_num(all_fencing_players_point_pair_coords[j])==1:
+            return j
+
     return -1
 
 
@@ -77,11 +84,14 @@ def get_players_total_y_size(fencing_players_point_pair_coords):
     fencing_players_point_pair_coords_copy[fencing_players_point_pair_coords_copy == np.inf] = -np.inf
     y_max = np.max(np.max(fencing_players_point_pair_coords_copy[:, :, :, 1], 2), 1)
     players_y_size = y_max - y_min
+    players_y_size[players_y_size == np.inf] = 0
+    players_y_size[players_y_size == -np.inf] = 0
     return players_y_size
 
 
 def sort_players_by_x_loc(people_x_y):
-    return people_x_y[np.argsort(people_x_y[:, 0])]
+    sorted_ind = np.argsort(people_x_y[:, 0])
+    return sorted_ind, people_x_y[sorted_ind]
 
 
 def map_curr_player_to_prev_player(prev_people_x_y, curr_people_x_y):
@@ -92,7 +102,8 @@ def map_curr_player_to_prev_player(prev_people_x_y, curr_people_x_y):
         curr_prev_x_y_min_diff_prev_ind = -1
 
         for prev_p_ind in range(len(prev_people_x_y)):
-            x_y_diff = np.sum(np.abs(curr_people_x_y[curr_p_ind]-prev_people_x_y[prev_p_ind]))
+            tmpRes = np.abs(curr_people_x_y[curr_p_ind]-prev_people_x_y[prev_p_ind])
+            x_y_diff = tmpRes[0]+(2*tmpRes[1])
 
             if x_y_diff<curr_prev_x_y_min_diff:
                 curr_prev_x_y_min_diff = x_y_diff
@@ -147,7 +158,7 @@ def filterFencingPlayers(coords_point_pair_lst, people_point_pose_confidence_lst
         # filter persons by total size: total_size = y_max - y_min
         if len(fencing_players_point_pair_coords) > 0:
             players_y_size = get_players_total_y_size(fencing_players_point_pair_coords)
-            fencing_players_ind = np.where(players_y_size > 105.0)[0]
+            fencing_players_ind = np.where(players_y_size > 100.0)[0]
             fencing_players_ind.sort()
             fencing_players_point_pair_coords = fencing_players_point_pair_coords[fencing_players_ind]
 
@@ -155,30 +166,38 @@ def filterFencingPlayers(coords_point_pair_lst, people_point_pose_confidence_lst
         prev_frame_with_two_players_ind = find_previous_frame_with_two_players(all_fencing_players_point_pair_coords, seq_ind-1)
 
         if len(fencing_players_point_pair_coords)>0 and prev_frame_with_two_players_ind>-1:
-            prev_people_x_y_mean = np.mean(all_fencing_players_point_pair_coords[prev_frame_with_two_players_ind, :, 0, :, :], 1)
-            curr_people_x_y_mean = np.mean(fencing_players_point_pair_coords[ :, 0, :, :], 1)
+            # if in previous frame there is one player and in current frame more than one, skip this filtering
+            if not (len(fencing_players_point_pair_coords)>1 and get_players_num(all_fencing_players_point_pair_coords[prev_frame_with_two_players_ind])==1):
+                prev_people_x_y_mean = np.mean(all_fencing_players_point_pair_coords[prev_frame_with_two_players_ind, :, 0, :, :], 1)
+                curr_people_x_y_mean = np.mean(fencing_players_point_pair_coords[ :, 0, :, :], 1)
 
-            prev_people_x_y_mean = sort_players_by_x_loc(prev_people_x_y_mean)
-            prev_curr_player_map = map_curr_player_to_prev_player(prev_people_x_y_mean, curr_people_x_y_mean)
-            fencing_players_ind = filter_players_with_same_L_R_direction(prev_curr_player_map)
-            fencing_players_ind.sort()
-            fencing_players_point_pair_coords = fencing_players_point_pair_coords[fencing_players_ind]
-            curr_people_x_y_mean = curr_people_x_y_mean[fencing_players_ind]
+                prev_sorted_ind, prev_people_x_y_mean = sort_players_by_x_loc(prev_people_x_y_mean)
+                prev_curr_player_map = map_curr_player_to_prev_player(prev_people_x_y_mean, curr_people_x_y_mean)
+                fencing_players_ind = filter_players_with_same_L_R_direction(prev_curr_player_map)
+                fencing_players_ind.sort()
+                fencing_players_point_pair_coords = fencing_players_point_pair_coords[fencing_players_ind]
+                curr_people_x_y_mean = curr_people_x_y_mean[fencing_players_ind]
+                prev_curr_player_map = map_curr_player_to_prev_player(prev_people_x_y_mean, curr_people_x_y_mean)
 
-            prev_people_total_y_size = get_players_total_y_size(all_fencing_players_point_pair_coords[prev_frame_with_two_players_ind])
-            curr_people_total_y_size = get_players_total_y_size(fencing_players_point_pair_coords)
+                prev_people_total_y_size = get_players_total_y_size(all_fencing_players_point_pair_coords[prev_frame_with_two_players_ind, prev_sorted_ind])
+                curr_people_total_y_size = get_players_total_y_size(fencing_players_point_pair_coords)
 
-            fencing_players_ind = []
-            for p in range(len(fencing_players_point_pair_coords)):
-                curr_x_y = curr_people_x_y_mean[p]
-                curr_total_y_size = curr_people_total_y_size[p]
+                fencing_players_ind = []
+                for p in range(len(fencing_players_point_pair_coords)):
+                    curr_x_y = curr_people_x_y_mean[p]
+                    curr_total_y_size = curr_people_total_y_size[p]
 
-                if len([prev_x_y for prev_x_y in prev_people_x_y_mean if np.sum(np.abs(curr_x_y-prev_x_y))<200.0])>0:
-                    if len([prev_total_y_size for prev_total_y_size in prev_people_total_y_size if np.abs(curr_total_y_size - prev_total_y_size) < 70.0])>0:
-                        fencing_players_ind.append(p)
+                    prev_ind = prev_curr_player_map[str(p)][0]
+                    prev_x_y = prev_people_x_y_mean[prev_ind]
+                    prev_total_y_size = prev_people_total_y_size[prev_ind]
 
-            fencing_players_ind.sort()
-            fencing_players_point_pair_coords = fencing_players_point_pair_coords[fencing_players_ind]
+                    if np.sum(np.abs(curr_x_y-prev_x_y)) < min(200.0, (seq_ind-prev_frame_with_two_players_ind)*100.0):
+                        if np.abs(curr_x_y[1]-prev_x_y[1]) < 70.0:
+                            if np.abs(curr_total_y_size - prev_total_y_size) < 70.0:
+                                fencing_players_ind.append(p)
+
+                fencing_players_ind.sort()
+                fencing_players_point_pair_coords = fencing_players_point_pair_coords[fencing_players_ind]
 
         # take the two closetst players by y body location
         if len(fencing_players_point_pair_coords) > 2:
@@ -196,15 +215,20 @@ def filterFencingPlayers(coords_point_pair_lst, people_point_pose_confidence_lst
 
 def get_frames_to_repair(fencing_players_coords, player_ind):
     max_delta_y = 125.0
-    y_mean_player = np.median(np.mean(fencing_players_coords[:, player_ind, 0, :, 1], 1))
+    y_mean_per_player = np.mean(fencing_players_coords[:, player_ind, 0, :, 1], 1)
+    y_mean_per_player = [y for y in y_mean_per_player if y>0]
     frames_to_repair_for_player = []
-    seq_len = fencing_players_coords.shape[0]
 
-    for seq_ind in range(seq_len):
-        curr_frame_y_mean_player = np.mean(fencing_players_coords[seq_ind, player_ind, 0, :, 1])
+    if len(y_mean_per_player)>0:
+        y_mean_player = np.median(y_mean_per_player)
 
-        if np.abs(curr_frame_y_mean_player - y_mean_player) > max_delta_y:
-            frames_to_repair_for_player.append(seq_ind)
+        seq_len = fencing_players_coords.shape[0]
+
+        for seq_ind in range(seq_len):
+            curr_frame_y_mean_player = np.mean(fencing_players_coords[seq_ind, player_ind, 0, :, 1])
+
+            if np.abs(curr_frame_y_mean_player - y_mean_player) > max_delta_y:
+                frames_to_repair_for_player.append(seq_ind)
 
     return frames_to_repair_for_player
 
@@ -317,7 +341,7 @@ def sort_fencing_players(fencing_players_coords):
             prev_frame_player0_x_mean = 0
             prev_frame_player1_x_mean = 0
             j = seq_ind - 1
-            while j>=0 and (prev_frame_player0_x_mean==0 or prev_frame_player1_x_mean==0):
+            while j>=seq_ind-1-15 and (prev_frame_player0_x_mean==0 or prev_frame_player1_x_mean==0):
                 prev_frame_player0_x_mean = np.mean(fencing_players_coords[j, 0, 0, :, 0])
                 prev_frame_player1_x_mean = np.mean(fencing_players_coords[j, 1, 0, :, 0])
                 j=j-1
@@ -325,7 +349,19 @@ def sort_fencing_players(fencing_players_coords):
             if prev_frame_player0_x_mean>0 and prev_frame_player1_x_mean>0:
                 curr_player_ind = np.argmin(np.array([np.abs(player_x_mean-prev_frame_player0_x_mean), np.abs(player_x_mean-prev_frame_player1_x_mean)]))
             else:
-                curr_player_ind = 0 if player_x_mean<IMG_SHAPE[0]/2 else 1
+                prev_frame_player_x_mean = 0
+                j = seq_ind - 1
+                while j >= seq_ind - 1 - 15 and (prev_frame_player_x_mean == 0):
+                    prev_frame_players_ind_lst = get_player_ind(fencing_players_coords[j])
+                    if len(prev_frame_players_ind_lst)>0:
+                        prev_frame_player_ind = prev_frame_players_ind_lst[0]
+                        prev_frame_player_x_mean = np.mean(fencing_players_coords[j, prev_frame_player_ind, 0, :, 0])
+                    j = j - 1
+
+                if prev_frame_player_x_mean > 0 and np.abs(player_x_mean-prev_frame_player_x_mean)<50.0:
+                    curr_player_ind = prev_frame_player_ind
+                else:
+                    curr_player_ind = 0 if player_x_mean<IMG_SHAPE[0]/2 else 1
 
             _fencing_players_coords[curr_player_ind] = curr_fencing_players_coords[old_player_ind]
             fencing_players_coords[seq_ind] = _fencing_players_coords
