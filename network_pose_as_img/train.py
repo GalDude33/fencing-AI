@@ -13,13 +13,13 @@ from network_pose_as_img.dataloader import Dataset
 from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, accuracy, check_grad
 
 
-batch_size = 8
-workers = 2
+batch_size = 10
+workers = 8
 use_cuda = True
 learning_rate = 1e-5
 weight_decay = 0#1e-5
 checkpoint = ''
-expName = 'fencing_exp_poses_as_img'
+expName = 'fencing_exp_poses_as_img_c3d_1e-5_wd_0'
 epochs = 100
 adjust_lr_manually = 1
 max_not_improving_epochs = 10
