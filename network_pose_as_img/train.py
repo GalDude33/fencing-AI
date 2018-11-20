@@ -8,7 +8,7 @@ from tqdm import tqdm
 import os
 import json
 import numpy as np
-from network_pose_as_img.model import FencingModel
+from network_pose_as_img.model_with_c3d import FencingModel
 from network_pose_as_img.dataloader import Dataset
 from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, accuracy, check_grad
 
@@ -17,29 +17,30 @@ batch_size = 8
 workers = 2
 use_cuda = True
 learning_rate = 1e-5
+weight_decay = 0#1e-5
 checkpoint = ''
 expName = 'fencing_exp_poses_as_img'
 epochs = 100
 adjust_lr_manually = 1
-max_not_improving_epochs = 20
+max_not_improving_epochs = 10
 clip_grad = 0.5
 ignore_grad = 10000.0
 labels_arr = np.array([0, 1, 2])
 device = torch.device("cuda" if use_cuda else "cpu")
 
 
-poses_clips_path = '/media/rabkinda/DATA/fencing/pose_estimation_checker/poses_clips'
+poses_clips_path = '/home/rabkinda/Documents/computer_vision/fencing/poses_clips_reduced'
 
 valid_dataset = Dataset(mode='val', txt_path='network/train_val_test_splitter/val.txt', poses_clips_path=os.path.join(poses_clips_path, 'val'))
 valid_loader = torch.utils.data.DataLoader(valid_dataset,
                          batch_size=batch_size,
-                         num_workers=workers,
+                         num_workers=int(workers/2),
                          pin_memory=True)
 
 test_dataset = Dataset(mode='test', txt_path='network/train_val_test_splitter/test.txt', poses_clips_path=os.path.join(poses_clips_path, 'test'))
 test_loader = torch.utils.data.DataLoader(test_dataset,
                          batch_size=batch_size,
-                         num_workers=workers,
+                         num_workers=int(workers/2),
                          pin_memory=True)
 
 train_dataset = Dataset(mode='train', txt_path='network/train_val_test_splitter/train.txt', poses_clips_path=os.path.join(poses_clips_path, 'train'))
@@ -54,7 +55,7 @@ def train(model, criterion, optimizer, epoch, writer):
     total = 0   # Reset every plot_every
     acc_meter = AverageMeter()
     output_count_meter = BinCounterMeter(labels_arr)
-    train_enum = train_loader
+    train_enum = tqdm(train_loader, desc='Train epoch %d' % epoch)
 
     for pose_dsc, label, _ in train_enum:
         pose_dsc, label = pose_dsc.to(device), label.to(device)
@@ -100,12 +101,12 @@ def train(model, criterion, optimizer, epoch, writer):
     return loss_avg, acc_avg
 
 
-def evaluate(model, criterion, epoch, writer):
+def evaluate(model, criterion, epoch, writer, loader):
     model.eval()
     total = 0
     acc_meter = AverageMeter()
     output_count_meter = BinCounterMeter(labels_arr)
-    valid_enum = valid_loader
+    valid_enum = tqdm(loader, desc='Valid epoch %d' % epoch)
 
     with torch.no_grad():
         for pose_dsc, label, _ in valid_enum:
@@ -140,7 +141,7 @@ def main():
     start_epoch = 1
 
     model = FencingModel().to(device)
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     if checkpoint != '':
         checkpoint_args_path = os.path.dirname(checkpoint) + '/args.pth'
@@ -174,7 +175,7 @@ def main():
                 adjust_learning_rate(optimizer, 0.5)
 
         train_avg_loss, train_avg_acc = train(model, criterion, optimizer, epoch, writer)
-        val_avg_loss, val_avg_acc = evaluate(model, criterion, epoch, writer)
+        val_avg_loss, val_avg_acc = evaluate(model, criterion, epoch, writer, valid_loader)
 
         if val_avg_loss < best_eval:
             torch.save(model.state_dict(), '%s/bestmodel.pth' % (expName))
@@ -194,7 +195,7 @@ def main():
 
     print('Running Test\n')
     model.load_state_dict(torch.load('%s/bestmodel.pth' % (expName)))
-    test_avg_loss, test_avg_acc = evaluate(model, criterion, epoch, None)
+    test_avg_loss, test_avg_acc = evaluate(model, criterion, epoch, None, test_loader)
     print('====> Total test set loss: {:.4f}, acc: {:.4f}'.format(test_avg_loss, test_avg_acc))
 
     print('startTime=' + str(startTime))
