@@ -1,74 +1,69 @@
-import random
+import glob
+import numpy as np
 import os
+import pickle
 from pathlib import Path
 import cv2
-import numpy as np
+from tqdm import tqdm
+from multiprocessing.dummy import Pool
 from VideoUtils import CV2VideoCapture
-import glob
-from network.PoseEstimationUtils import convert_points_to_lines, plot_from_pose_coords, load_people_point_pose_arr, \
-    getFencingPlayersPoseArr
+from network.PoseEstimationUtils import plot_from_pose_coords
 
 
-def getPoseEstimationImgFromCoordinatesByArr(oriImg, coords_arr, multiplyByImgSize=False):
-    if multiplyByImgSize:
-        coords_arr[:, :, :, 0] = coords_arr[:,:,:,0]*1280.0
-        coords_arr[:, :, :, 1] = coords_arr[:, :, :, 1] * 720.0
+def getPoseEstimationImgFromCoordinatesByArr(oriImg, coords_arr):
     canvas, to_plot = plot_from_pose_coords(oriImg, coords_arr)
-    #cv2.imwrite('result.png', to_plot)
     return to_plot
 
-font = cv2.FONT_HERSHEY_SIMPLEX
-topLeftCornerOfText = (50, 110)
-fontScale = 1
-fontColor = (255, 255, 255)
-lineType = 2
 
-mode = 'val'
-output_dir = '/media/rabkinda/DATA/fencing/pose_estimation_checker'
+mode = 'train'
+output_dir = '/media/rabkinda/DATA/fencing/pose_estimation_checker/poses_clips/'+mode
 clips_path = '/media/rabkinda/Gal_Backup/fencing/clips*/*.mp4'
-json_path = '/media/rabkinda/DATA/fencing/FinalPoseEstimationResults/jsons*/*.json'
-seq_len = 60
-n = 5
-img_shape = (1280, 720)
-trg_clip_name = None
 
 clip_paths = [f for f in glob.glob(clips_path) if 'None' not in f]
+seq_len = 60
+img_shape = (1280, 720)
+pickle_file = Path('network/train_val_test_splitter/' + mode + '.pickle')
+objects = []
 
-if trg_clip_name is None:
-    chosen_objects = random.sample(clip_paths, n)
-    chosen_objects = [Path(obj).stem for obj in chosen_objects]
-else:
-    chosen_objects = [trg_clip_name]
+if pickle_file.is_file():
+    with open(pickle_file, 'rb') as f:
+        objects = pickle.load(f)
 
-for i in range(len(chosen_objects)):
-    clip_name = chosen_objects[i]
+max_parallel = 8
+pool = Pool(max_parallel)
 
-    clip_path = [f for f in clip_paths if clip_name in f][0]
-    json_paths = [f for f in glob.glob(json_path) if clip_name in f]
-    json_paths.sort()
+def generate_poses_clip(obj):
 
+    curr_poses = obj[0]
+    curr_poses[:, :, :, :, 0] = curr_poses[:, :, :, :, 0] * 1280.0
+    curr_poses[:, :, :, :, 1] = curr_poses[:, :, :, :, 1] * 720.0
+    curr_poses = curr_poses.numpy()
+
+    curr_clip_name = obj[2]
+    clip_path = [f for f in clip_paths if curr_clip_name in f][0]
     cap = CV2VideoCapture(clip_path)
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(os.path.join(output_dir, clip_name) + '.mp4', fourcc, 20.0, img_shape)
-    out_all = cv2.VideoWriter(os.path.join(output_dir, clip_name + '_all') + '.mp4', fourcc, 20.0, img_shape)
 
-    fencing_players_coords = getFencingPlayersPoseArr(json_paths)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(os.path.join(output_dir, curr_clip_name) + '.mp4', fourcc, 20.0, img_shape)
 
     for seq_ind in range(seq_len):
-        curr_fencing_players_coords = fencing_players_coords[seq_ind]
-
-        curr_all_people_point_pose_arr, curr_all_people_point_pose_confidence_arr = load_people_point_pose_arr(json_paths[seq_ind])
-        curr_all_people_point_pair_pose_arr = convert_points_to_lines(curr_all_people_point_pose_arr).astype(np.float32)
-
+        curr_fencing_players_coords = curr_poses[seq_ind]
         curr_frame_img = cap.read()
-        cv2.putText(curr_frame_img, str(seq_ind), topLeftCornerOfText, font, fontScale, fontColor, lineType)
+        curr_frame_with_chosen_poses = getPoseEstimationImgFromCoordinatesByArr(curr_frame_img,
+                                                                                curr_fencing_players_coords)
+        poses_only_as_img = curr_frame_with_chosen_poses - curr_frame_img
 
-        curr_frame_with_chosen_poses = getPoseEstimationImgFromCoordinatesByArr(curr_frame_img, curr_fencing_players_coords, False)
-        curr_frame_with_all_poses = getPoseEstimationImgFromCoordinatesByArr(curr_frame_img, curr_all_people_point_pair_pose_arr, False)
-        out.write(curr_frame_with_chosen_poses)
-        out_all.write(curr_frame_with_all_poses)
+        poses_only_as_img_gray = cv2.cvtColor(poses_only_as_img, cv2.COLOR_RGB2GRAY)
+        ret, poses_only_as_img_gray = cv2.threshold(poses_only_as_img_gray, 0, 255, cv2.THRESH_BINARY)
+        poses_only_as_img_rgb = cv2.cvtColor(poses_only_as_img_gray, cv2.COLOR_GRAY2RGB)
+
+        out.write(poses_only_as_img_rgb)
 
     out.release()
-    out_all.release()
     cap.__del__()
     cv2.destroyAllWindows()
+
+
+with tqdm(total=len(objects)) as pbar:
+    for i, _ in enumerate(pool.imap_unordered(generate_poses_clip, objects)):
+        pbar.update()
