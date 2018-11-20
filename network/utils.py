@@ -66,7 +66,7 @@ def accuracy(log_pred_prob, trg):
 
 
 def check_grad(params, clip_th, ignore_th):
-    befgad = torch.nn.utils.clip_grad_norm(params, clip_th)
+    befgad = torch.nn.utils.clip_grad_norm_(params, clip_th)
     return (not np.isfinite(befgad) or (befgad > ignore_th))
 
 
@@ -95,3 +95,12 @@ def get_label_from_letter(letter):
         'R': 1,
         'T': 2
     }.get(letter)
+
+
+def flip_label(label):
+    if label==0:
+        return 1
+    elif label==1:
+        return 0
+    else:
+        return 2
