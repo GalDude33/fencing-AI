@@ -8,6 +8,7 @@ from tqdm import tqdm
 from multiprocessing.dummy import Pool
 from VideoUtils import CV2VideoCapture
 from network.PoseEstimationUtils import plot_from_pose_coords
+from PIL import Image
 
 
 def getPoseEstimationImgFromCoordinatesByArr(oriImg, coords_arr):
@@ -21,7 +22,7 @@ clips_path = '/media/rabkinda/Gal_Backup/fencing/clips*/*.mp4'
 
 clip_paths = [f for f in glob.glob(clips_path) if 'None' not in f]
 seq_len = 60
-img_shape = (1280, 720)
+img_shape = (256, 128)
 pickle_file = Path('network/train_val_test_splitter/' + mode + '.pickle')
 objects = []
 
@@ -35,8 +36,6 @@ pool = Pool(max_parallel)
 def generate_poses_clip(obj):
 
     curr_poses = obj[0]
-    curr_poses[:, :, :, :, 0] = curr_poses[:, :, :, :, 0] * 1280.0
-    curr_poses[:, :, :, :, 1] = curr_poses[:, :, :, :, 1] * 720.0
     curr_poses = curr_poses.numpy()
 
     curr_clip_name = obj[2]
@@ -49,15 +48,21 @@ def generate_poses_clip(obj):
     for seq_ind in range(seq_len):
         curr_fencing_players_coords = curr_poses[seq_ind]
         curr_frame_img = cap.read()
-        curr_frame_with_chosen_poses = getPoseEstimationImgFromCoordinatesByArr(curr_frame_img,
-                                                                                curr_fencing_players_coords)
-        poses_only_as_img = curr_frame_with_chosen_poses - curr_frame_img
 
-        poses_only_as_img_gray = cv2.cvtColor(poses_only_as_img, cv2.COLOR_RGB2GRAY)
-        ret, poses_only_as_img_gray = cv2.threshold(poses_only_as_img_gray, 0, 255, cv2.THRESH_BINARY)
-        poses_only_as_img_rgb = cv2.cvtColor(poses_only_as_img_gray, cv2.COLOR_GRAY2RGB)
+        for p in range(len(curr_fencing_players_coords)):
+            curr_frame_with_chosen_pose = getPoseEstimationImgFromCoordinatesByArr(curr_frame_img,
+                                                                                    np.expand_dims(curr_fencing_players_coords[p], axis=0))
 
-        out.write(poses_only_as_img_rgb)
+            pose_only_as_img = curr_frame_with_chosen_pose - curr_frame_img
+
+            #poses_only_as_img_gray = cv2.cvtColor(poses_only_as_img, cv2.COLOR_RGB2GRAY)
+            ret, pose_only_as_img = cv2.threshold(pose_only_as_img, 0, 255, cv2.THRESH_BINARY)
+            #poses_only_as_img_rgb = cv2.cvtColor(poses_only_as_img_gray, cv2.COLOR_GRAY2RGB)
+
+            img = Image.fromarray(pose_only_as_img)
+            img = img.resize(img_shape, Image.ANTIALIAS)
+
+            out.write(np.array(img))
 
     out.release()
     cap.__del__()
