@@ -53,13 +53,14 @@ def generate_poses_clip(obj):
             curr_frame_with_chosen_pose = getPoseEstimationImgFromCoordinatesByArr(curr_frame_img,
                                                                                     np.expand_dims(curr_fencing_players_coords[p], axis=0))
 
-            pose_only_as_img = curr_frame_with_chosen_pose - curr_frame_img
+            pose_only_as_img = curr_frame_with_chosen_pose.astype(np.float32) - curr_frame_img.astype(np.float32)
+            pose_only_as_img = np.clip(pose_only_as_img, 0, 255)
 
             #poses_only_as_img_gray = cv2.cvtColor(poses_only_as_img, cv2.COLOR_RGB2GRAY)
-            ret, pose_only_as_img = cv2.threshold(pose_only_as_img, 0, 255, cv2.THRESH_BINARY)
+            #ret, pose_only_as_img = cv2.threshold(pose_only_as_img, 0, 255, cv2.THRESH_BINARY)
             #poses_only_as_img_rgb = cv2.cvtColor(poses_only_as_img_gray, cv2.COLOR_GRAY2RGB)
 
-            img = Image.fromarray(pose_only_as_img)
+            img = Image.fromarray(pose_only_as_img.astype(np.uint8))
             img = img.resize(img_shape, Image.ANTIALIAS)
 
             out.write(np.array(img))
