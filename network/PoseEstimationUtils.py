@@ -8,8 +8,8 @@ import math
 # Neck->LShoulder, so joint_to_limb_heatmap_relationship[1] represents the
 # indices of heatmaps to look for joints: neck=1, LShoulder=5
 joint_to_limb_heatmap_relationship = [[1, 8], [1, 2], [1, 5], [2, 3], [3, 4], [5, 6], [6, 7], [8, 9], [9, 10], [10, 11],
- [8, 12], [12, 13], [13, 14], [1, 0], [0, 15], [15, 17], [0, 16], [16, 18], [2, 17],
- [5, 18], [14, 19], [19, 20], [14, 21], [11, 22], [22, 23], [11, 24]]
+ [8, 12], [12, 13], [13, 14], [1, 0], [0, 15], [15, 17], [0, 16], [16, 18],
+ [14, 19], [19, 20], [14, 21], [11, 22], [22, 23], [11, 24]]
 
 # Color code used to plot different joints and limbs (eg: joint_type=3 and
 # limb_type=3 will use colors[3])
@@ -37,8 +37,7 @@ colors =    [   [255,     0,    85],
                 [  0,     0,   255],
                 [  0,   255,   255],
                 [  0,   255,   255],
-                [  0,   255,   255],
-                [0, 255, 255]]
+                [  0,   255,   255]]
 
 NUM_LIMBS = len(joint_to_limb_heatmap_relationship)
 NUM_POINTS = 25
