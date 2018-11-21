@@ -17,7 +17,7 @@ def getPoseEstimationImgFromCoordinatesByArr(oriImg, coords_arr):
 
 
 mode = 'train'
-output_dir = '/media/rabkinda/DATA/fencing/pose_estimation_checker/poses_clips/'+mode
+output_dir = '/home/rabkinda/Documents/computer_vision/fencing/poses_clips_reduced_players_different_channel/'+mode
 clips_path = '/media/rabkinda/Gal_Backup/fencing/clips*/*.mp4'
 
 clip_paths = [f for f in glob.glob(clips_path) if 'None' not in f]
