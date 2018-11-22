@@ -8,7 +8,6 @@ import numpy as np
 import torch.utils.data as torchdata
 import torchvision
 from random import uniform
-from VideoUtils import CV2VideoCapture
 from network.utils import get_label_from_letter, flip_label
 from PIL import Image
 
@@ -72,7 +71,7 @@ class Dataset(torchdata.Dataset):
             label = flip_label(label)
             frames = frames[:, :, :, ::-1]
 
-        return torch.from_numpy(frames.copy()), label, clip_name
+        return torch.from_numpy(frames.copy()).unsqueeze(2).transpose(2,-1).squeeze(-1), label, clip_name
 
 
     def __len__(self):
