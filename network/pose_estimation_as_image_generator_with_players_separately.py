@@ -40,8 +40,13 @@ def generate_poses_clip(obj):
     curr_poses = curr_poses.numpy()
 
     all_y = curr_poses[:, :, :, :, 1]
-    y_max = np.max(all_y[all_y > 0])
-    y_min = np.min(all_y[all_y > 0])
+    all_y_non_zero = all_y[all_y > 0]
+    if len(all_y_non_zero)>0:
+        y_max = np.max(all_y_non_zero)
+        y_min = np.min(all_y_non_zero)
+    else:
+        y_max = 0
+        y_min = 0
     assert not np.isinf(y_max)
     assert not np.isinf(y_min)
 
