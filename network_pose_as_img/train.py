@@ -171,8 +171,8 @@ def main():
             # Halve learning rate if there is no improvement for 3 consecutive epochs, and terminate training after 8
             if epochs_since_improvement == max_not_improving_epochs:
                 break
-            if epochs_since_improvement > 0 and epochs_since_improvement % 5 == 0:
-                adjust_learning_rate(optimizer, 0.5)
+            if epochs_since_improvement > 0 and epochs_since_improvement % 4 == 0:
+                adjust_learning_rate(optimizer, 0.6)
 
         train_avg_loss, train_avg_acc = train(model, criterion, optimizer, epoch, writer)
         val_avg_loss, val_avg_acc = evaluate(model, criterion, epoch, writer, valid_loader)
