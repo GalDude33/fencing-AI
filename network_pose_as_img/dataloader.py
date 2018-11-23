@@ -15,10 +15,10 @@ from PIL import Image
 
 class Dataset(torchdata.Dataset):
 
-    def __init__(self, mode, txt_path, poses_clips_path):
+    def __init__(self, mode, txt_path, poses_path):
         self.seq_len = 60
         video_names_to_filter = [x.rstrip() for x in open(txt_path, 'r')]
-        self.poses_clips_path = poses_clips_path
+        self.poses_clips_path = poses_path
         vid_pose_files = [vid_pose_file for vid_pose_file in glob.glob(self.poses_clips_path + "/*.mp4")]
         self.objects = []
 
