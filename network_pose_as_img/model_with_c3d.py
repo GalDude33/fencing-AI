@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 
 
 class C3D(nn.Module):
@@ -7,7 +8,7 @@ class C3D(nn.Module):
         super(C3D, self).__init__()
 
         x = 32
-        self.conv1 = nn.Conv3d(1, x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
+        self.conv1 = nn.Conv3d(6, x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
         self.pool1 = nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2))
 
         self.conv2 = nn.Conv3d(x, 2*x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
@@ -78,6 +79,10 @@ class FencingModel(nn.Module):
         seq_len = frames_pose_tensor.shape[1]
         seqs_to_count = [i for i in range(seq_len) if (i>=0 and i<=50 and i%2==0)]
 
-        input = frames_pose_tensor[:, seqs_to_count[-16:]].unsqueeze(1)#(N, C_{in}, D_{in}, H_{in}, W_{in})
+        input = frames_pose_tensor[:, seqs_to_count[-16:]]#filter sequence
+        batch_size, filtered_seq_len, people_num, img_channel_size, h, w = input.shape
+        #(N, C_{in}, D_{in}, H_{in}, W_{in})
+        input = input.view(batch_size, filtered_seq_len, people_num*img_channel_size, h, w)
+        input = input.transpose(1, 2)
         res = self.c3d(input)
         return res
