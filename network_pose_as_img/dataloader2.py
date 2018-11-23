@@ -8,6 +8,7 @@ import numpy as np
 import torch.utils.data as torchdata
 import torchvision
 from random import uniform
+from VideoUtils import CV2VideoCapture
 from network.utils import get_label_from_letter, flip_label
 from PIL import Image
 
@@ -17,8 +18,8 @@ class Dataset(torchdata.Dataset):
     def __init__(self, mode, txt_path, poses_path):
         self.seq_len = 60
         video_names_to_filter = [x.rstrip() for x in open(txt_path, 'r')]
-        self.poses_img_path = poses_path
-        vid_pose_files = [vid_pose_file for vid_pose_file in glob.glob(self.poses_img_path + "/*")]
+        self.poses_clips_path = poses_path
+        vid_pose_files = [vid_pose_file for vid_pose_file in glob.glob(self.poses_clips_path + "/*.mp4")]
         self.objects = []
 
         for vid_pose_file in vid_pose_files:
@@ -42,7 +43,8 @@ class Dataset(torchdata.Dataset):
     def __getitem__(self, index):
 
         clip_name, label = self.objects[index]
-        clip_dir_path = os.path.join(self.poses_img_path, clip_name)
+        clip_path = os.path.join(self.poses_clips_path, clip_name + '.mp4')
+        cap = CV2VideoCapture(clip_path)
         frames = np.zeros((self.seq_len, 2, 128, 256, 3), dtype=np.float32)
         angle, translate, scale = 0.0, 0.0, 1.0
 
@@ -52,9 +54,7 @@ class Dataset(torchdata.Dataset):
 
         for seq_ind in range(self.seq_len):
             for p in [0,1]:
-                curr_frame_img_path = os.path.join(clip_dir_path, str(p), str(seq_ind)+'.png')
-                curr_frame_img = cv2.imread(curr_frame_img_path)
-                curr_frame_img = cv2.cvtColor(curr_frame_img, cv2.COLOR_BGR2RGB)
+                curr_frame_img = cap.read()
 
                 if self.mode == 'train':
                     img = Image.fromarray(curr_frame_img)
