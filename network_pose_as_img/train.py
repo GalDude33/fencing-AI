@@ -13,16 +13,16 @@ from network_pose_as_img.dataloader2 import Dataset
 from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, accuracy, check_grad
 
 
-filtered_seq_len = 16
-filtered_seq_step_size = 2
+filtered_seq_len = 32
+filtered_seq_step_size = 1
 use_optical_flow = 1
-batch_size = 10
-workers = 15
+batch_size = 14
+workers = 18
 use_cuda = True
 learning_rate = 1e-5
 weight_decay = 0#1e-5
 checkpoint = ''
-expName = 'fencing_exp_poses_as_img_c3d_1e-5_wd_0_b_10_look_16_2_step_with_optical_flow'
+expName = 'fencing_exp_poses_as_img_c3d_{lr}_wd_0_b_{batch}_look_{seq_len}_step{step}_{date}'.format(lr=learning_rate, batch=batch_size, seq_len=filtered_seq_len, step=filtered_seq_step_size, date=datetime.now())
 epochs = 100
 adjust_lr_manually = 1
 max_not_improving_epochs = 10
@@ -32,7 +32,7 @@ labels_arr = np.array([0, 1, 2])
 device = torch.device("cuda" if use_cuda else "cpu")
 
 
-poses_imgs_path = '/home/rabkinda/Documents/computer_vision/fencing/poses_clips_reduced_players_different_channel/video'
+poses_imgs_path = '../video'
 
 valid_dataset = Dataset(mode='val', txt_path='network/train_val_test_splitter/val.txt', poses_path=os.path.join(poses_imgs_path, 'val'),
                         filtered_seq_len=filtered_seq_len, filtered_seq_step_size=filtered_seq_step_size, use_optical_flow=use_optical_flow)
