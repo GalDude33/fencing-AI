@@ -4,21 +4,11 @@ import torch
 
 class C3D(nn.Module):
 
-    def __init__(self, players_in_same_channel, use_optical_flow, use_pose_img=True):
+    def __init__(self, input_channel_num):
         super(C3D, self).__init__()
 
-
-        input_channel_num = 0
-        if use_pose_img:
-            input_channel_num += 6
-        if use_optical_flow:
-            input_channel_num += 4
-
-        if players_in_same_channel:
-            input_channel_num /= 2
-
         x = 32
-        self.conv1 = nn.Conv3d(int(input_channel_num), x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
+        self.conv1 = nn.Conv3d(input_channel_num, x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
         self.pool1 = nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2))
 
         self.conv2 = nn.Conv3d(x, 2*x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
@@ -96,8 +86,18 @@ class FencingModel(nn.Module):
         super(FencingModel, self).__init__()
         self.use_optical_flow = use_optical_flow
         self.use_pose_img = use_pose_img
-        self.players_in_same_channel = players_in_same_channel
-        self.c3d = C3D(self.players_in_same_channel, self.use_optical_flow, self.use_pose_img)
+
+        self.input_channel_num = 0
+        if self.use_pose_img:
+            self.input_channel_num += 6
+        if self.use_optical_flow:
+            self.input_channel_num += 4
+
+        if players_in_same_channel:
+            self.input_channel_num /= 2
+        self.input_channel_num = int(self.input_channel_num)
+
+        self.c3d = C3D(self.input_channel_num)
 
     def forward(self, frames_pose_tensor, frames_optical_flow_tensor=None):
         if self.use_optical_flow:
