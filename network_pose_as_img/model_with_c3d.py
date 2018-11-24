@@ -4,11 +4,15 @@ import torch
 
 class C3D(nn.Module):
 
-    def __init__(self):
+    def __init__(self, use_optical_flow):
         super(C3D, self).__init__()
 
+        input_channel_num = 6
+        if use_optical_flow:
+            input_channel_num += 4
+
         x = 32
-        self.conv1 = nn.Conv3d(6, x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
+        self.conv1 = nn.Conv3d(input_channel_num, x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
         self.pool1 = nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2))
 
         self.conv2 = nn.Conv3d(x, 2*x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
@@ -68,21 +72,34 @@ class C3D(nn.Module):
         return probs
 
 
+
 class FencingModel(nn.Module):
 
-    def __init__(self):
+    def __init__(self, use_optical_flow):
         super(FencingModel, self).__init__()
-        self.c3d = C3D()
+        self.use_optical_flow = use_optical_flow
+        self.c3d = C3D(self.use_optical_flow)
 
+    def forward(self, frames_pose_tensor, frames_optical_flow_tensor=None):
+        if self.use_optical_flow:
+            flow_input = frames_optical_flow_tensor
+            batch_size, seq_len, people_num, flow_channel_size, h, w = flow_input.shape
+            flow_input = flow_input.view(batch_size, seq_len, people_num * flow_channel_size, h, w)
+            flow_input = flow_input.transpose(1, 2)
 
-    def forward(self, frames_pose_tensor):
-        seq_len = frames_pose_tensor.shape[1]
-        seqs_to_count = [i for i in range(seq_len) if (i>=0 and i<=50 and i%2==0)]
+        pose_input = frames_pose_tensor
+        batch_size, seq_len, people_num, img_channel_size, h, w = pose_input.shape
+        pose_input = pose_input.view(batch_size, seq_len, people_num*img_channel_size, h, w)
+        pose_input = pose_input.transpose(1, 2)
 
-        input = frames_pose_tensor[:, seqs_to_count[-16:]]#filter sequence
-        batch_size, filtered_seq_len, people_num, img_channel_size, h, w = input.shape
-        #(N, C_{in}, D_{in}, H_{in}, W_{in})
-        input = input.view(batch_size, filtered_seq_len, people_num*img_channel_size, h, w)
-        input = input.transpose(1, 2)
+        if self.use_optical_flow:
+            input = torch.cat([pose_input, flow_input], dim=1)
+        else:
+            input = pose_input
+
+        # (N, C_{in}, D_{in}, H_{in}, W_{in})
         res = self.c3d(input)
         return res
+
+
+
