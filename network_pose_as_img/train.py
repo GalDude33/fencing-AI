@@ -20,6 +20,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--filtered_seq_len', type=int, default=24, help='filtered_seq_len')
 parser.add_argument('--filtered_seq_step_size', type=int, default=1, help='filtered_seq_step_size')
 parser.add_argument('--use_optical_flow', type=int, default=1, help='use_optical_flow')
+parser.add_argument('--use_pose_img', type=int, default=1, help='use_pose_img')
 parser.add_argument('--batch_size', type=int, default=16, help='batch_size')
 parser.add_argument('--workers', type=int, default=16, help='workers')
 parser.add_argument('--learning_rate', type=float, default=1e-5, help='learning_rate')
@@ -154,7 +155,7 @@ def main():
     startTime = datetime.now()
     start_epoch = 1
 
-    model = FencingModel(use_optical_flow=args.use_optical_flow).to(device)
+    model = FencingModel(use_optical_flow=args.use_optical_flow, use_pose_img=args.use_pose_img).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=weight_decay)
 
     if checkpoint != '':
