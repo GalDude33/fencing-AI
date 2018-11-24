@@ -13,13 +13,16 @@ from network_pose_as_img.dataloader2 import Dataset
 from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, accuracy, check_grad
 
 
-batch_size = 9
-workers = 7
+filtered_seq_len = 16
+filtered_seq_step_size = 2
+use_optical_flow = 1
+batch_size = 10
+workers = 15
 use_cuda = True
 learning_rate = 1e-5
 weight_decay = 0#1e-5
 checkpoint = ''
-expName = 'fencing_exp_poses_as_img_c3d_1e-5_wd_0_b_9_look_16_2_step_img_color_cropped_players_in_different_channels'
+expName = 'fencing_exp_poses_as_img_c3d_1e-5_wd_0_b_10_look_16_2_step_with_optical_flow'
 epochs = 100
 adjust_lr_manually = 1
 max_not_improving_epochs = 10
@@ -31,19 +34,22 @@ device = torch.device("cuda" if use_cuda else "cpu")
 
 poses_imgs_path = '/home/rabkinda/Documents/computer_vision/fencing/poses_clips_reduced_players_different_channel/video'
 
-valid_dataset = Dataset(mode='val', txt_path='network/train_val_test_splitter/val.txt', poses_path=os.path.join(poses_imgs_path, 'val'))
+valid_dataset = Dataset(mode='val', txt_path='network/train_val_test_splitter/val.txt', poses_path=os.path.join(poses_imgs_path, 'val'),
+                        filtered_seq_len=filtered_seq_len, filtered_seq_step_size=filtered_seq_step_size)
 valid_loader = torch.utils.data.DataLoader(valid_dataset,
                          batch_size=batch_size,
                          num_workers=int(workers/2),
                          pin_memory=True)
 
-test_dataset = Dataset(mode='test', txt_path='network/train_val_test_splitter/test.txt', poses_path=os.path.join(poses_imgs_path, 'test'))
+test_dataset = Dataset(mode='test', txt_path='network/train_val_test_splitter/test.txt', poses_path=os.path.join(poses_imgs_path, 'test'),
+                       filtered_seq_len=filtered_seq_len, filtered_seq_step_size=filtered_seq_step_size)
 test_loader = torch.utils.data.DataLoader(test_dataset,
                          batch_size=batch_size,
                          num_workers=int(workers/2),
                          pin_memory=True)
 
-train_dataset = Dataset(mode='train', txt_path='network/train_val_test_splitter/train.txt', poses_path=os.path.join(poses_imgs_path, 'train'))
+train_dataset = Dataset(mode='train', txt_path='network/train_val_test_splitter/train.txt', poses_path=os.path.join(poses_imgs_path, 'train'),
+                        filtered_seq_len=filtered_seq_len, filtered_seq_step_size=filtered_seq_step_size)
 train_loader = torch.utils.data.DataLoader(train_dataset,
                          batch_size=batch_size,
                          num_workers=workers,
@@ -57,14 +63,14 @@ def train(model, criterion, optimizer, epoch, writer):
     output_count_meter = BinCounterMeter(labels_arr)
     train_enum = tqdm(train_loader, desc='Train epoch %d' % epoch)
 
-    for pose_dsc, label, _ in train_enum:
-        pose_dsc, label = pose_dsc.to(device), label.to(device)
+    for pose_dsc, optical_dsc, label, _ in train_enum:
+        pose_dsc, optical_dsc, label = pose_dsc.to(device), optical_dsc.to(device), label.to(device)
 
         # Zero gradients
         optimizer.zero_grad()
 
         # Forward
-        output = model(pose_dsc)
+        output = model(pose_dsc, optical_dsc)
         loss = criterion(output, label)
 
         # Backward
@@ -109,11 +115,11 @@ def evaluate(model, criterion, epoch, writer, loader):
     valid_enum = tqdm(loader, desc='Valid epoch %d' % epoch)
 
     with torch.no_grad():
-        for pose_dsc, label, _ in valid_enum:
-            pose_dsc, label = pose_dsc.to(device), label.to(device)
+        for pose_dsc, optical_dsc, label, _ in valid_enum:
+            pose_dsc, optical_dsc, label = pose_dsc.to(device), optical_dsc.to(device), label.to(device)
 
             # Forward
-            output = model(pose_dsc)
+            output = model(pose_dsc, optical_dsc)
             loss = criterion(output, label)
 
             total += loss.item()
@@ -140,7 +146,7 @@ def main():
     startTime = datetime.now()
     start_epoch = 1
 
-    model = FencingModel().to(device)
+    model = FencingModel(use_optical_flow=use_optical_flow).to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     if checkpoint != '':
