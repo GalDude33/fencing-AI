@@ -16,13 +16,14 @@ from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, a
 filtered_seq_len = 32
 filtered_seq_step_size = 1
 use_optical_flow = 1
+use_pose_img = 0
 batch_size = 14
 workers = 18
 use_cuda = True
 learning_rate = 1e-5
 weight_decay = 0#1e-5
 checkpoint = ''
-expName = 'fencing_exp_poses_as_img_c3d_{lr}_wd_0_b_{batch}_look_{seq_len}_step{step}_{date}'.format(lr=learning_rate, batch=batch_size, seq_len=filtered_seq_len, step=filtered_seq_step_size, date=datetime.now())
+expName = 'fencing_exp_poses_as_img_c3d_{lr}_wd_0_b_{batch}_look_{seq_len}_step{step}_{date}_optflow{optflow}_posimg{poseimg}'.format(lr=learning_rate, batch=batch_size, seq_len=filtered_seq_len, step=filtered_seq_step_size, date=datetime.now(), optflow=use_optical_flow, poseimg= use_pose_img)
 epochs = 100
 adjust_lr_manually = 1
 max_not_improving_epochs = 10
@@ -146,7 +147,7 @@ def main():
     startTime = datetime.now()
     start_epoch = 1
 
-    model = FencingModel(use_optical_flow=use_optical_flow).to(device)
+    model = FencingModel(use_optical_flow=use_optical_flow, use_pose_img=use_pose_img).to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     if checkpoint != '':
