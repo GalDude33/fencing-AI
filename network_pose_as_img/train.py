@@ -35,21 +35,21 @@ device = torch.device("cuda" if use_cuda else "cpu")
 poses_imgs_path = '/home/rabkinda/Documents/computer_vision/fencing/poses_clips_reduced_players_different_channel/video'
 
 valid_dataset = Dataset(mode='val', txt_path='network/train_val_test_splitter/val.txt', poses_path=os.path.join(poses_imgs_path, 'val'),
-                        filtered_seq_len=filtered_seq_len, filtered_seq_step_size=filtered_seq_step_size)
+                        filtered_seq_len=filtered_seq_len, filtered_seq_step_size=filtered_seq_step_size, use_optical_flow=use_optical_flow)
 valid_loader = torch.utils.data.DataLoader(valid_dataset,
                          batch_size=batch_size,
                          num_workers=int(workers/2),
                          pin_memory=True)
 
 test_dataset = Dataset(mode='test', txt_path='network/train_val_test_splitter/test.txt', poses_path=os.path.join(poses_imgs_path, 'test'),
-                       filtered_seq_len=filtered_seq_len, filtered_seq_step_size=filtered_seq_step_size)
+                       filtered_seq_len=filtered_seq_len, filtered_seq_step_size=filtered_seq_step_size, use_optical_flow=use_optical_flow)
 test_loader = torch.utils.data.DataLoader(test_dataset,
                          batch_size=batch_size,
                          num_workers=int(workers/2),
                          pin_memory=True)
 
 train_dataset = Dataset(mode='train', txt_path='network/train_val_test_splitter/train.txt', poses_path=os.path.join(poses_imgs_path, 'train'),
-                        filtered_seq_len=filtered_seq_len, filtered_seq_step_size=filtered_seq_step_size)
+                        filtered_seq_len=filtered_seq_len, filtered_seq_step_size=filtered_seq_step_size, use_optical_flow=use_optical_flow)
 train_loader = torch.utils.data.DataLoader(train_dataset,
                          batch_size=batch_size,
                          num_workers=workers,

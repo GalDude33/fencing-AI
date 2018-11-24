@@ -17,10 +17,11 @@ from scipy.ndimage import zoom
 
 class Dataset(torchdata.Dataset):
 
-    def __init__(self, mode, txt_path, poses_path, filtered_seq_len, filtered_seq_step_size):
+    def __init__(self, mode, txt_path, poses_path, filtered_seq_len, filtered_seq_step_size, use_optical_flow):
         self.seq_len = 60
         self.filtered_seq_len = filtered_seq_len
         self.filtered_seq_step_size = filtered_seq_step_size
+        self.use_optical_flow = use_optical_flow
         video_names_to_filter = [x.rstrip() for x in open(txt_path, 'r')]
         self.poses_clips_path = poses_path
         vid_pose_files = [vid_pose_file for vid_pose_file in glob.glob(self.poses_clips_path + "/*.mp4")]
@@ -77,9 +78,10 @@ class Dataset(torchdata.Dataset):
             label = flip_label(label)
             frames = frames[:, :, :, ::-1, :]
 
-        for i in range(self.filtered_seq_len - 1):
-            for p in [0, 1]:
-                flow[i, p] = self.calculate_optical_flow(frames[i, p], frames[i + 1, p])
+        if self.use_optical_flow:
+            for i in range(self.filtered_seq_len - 1):
+                for p in [0, 1]:
+                    flow[i, p] = self.calculate_optical_flow(frames[i, p], frames[i + 1, p])
 
         frames = frames.astype(np.float32)
         frames = frames/255.0
