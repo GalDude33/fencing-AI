@@ -34,9 +34,9 @@ args = parser.parse_args()
 use_cuda = True
 weight_decay = 0#1e-5
 checkpoint = ''
-expName = '{base_exp_name}_lr_{lr}_wd_0_b_{batch}_look_{seq_len}_step_{step}_{date}'\
+expName = '{base_exp_name}_lr_{lr}_wd_0_b_{batch}_look_{seq_len}_step_{step}_{date}_samechan{same_chan}'\
     .format(base_exp_name=args.base_exp_name, lr=args.learning_rate, batch=args.batch_size, seq_len=args.filtered_seq_len,
-            step=args.filtered_seq_step_size, date=datetime.now())
+            step=args.filtered_seq_step_size, date=datetime.now(), same_chan=args.players_in_same_channel)
 adjust_lr_manually = 1
 max_not_improving_epochs = 10
 clip_grad = 0.5
