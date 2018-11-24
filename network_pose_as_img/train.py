@@ -16,7 +16,7 @@ from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, a
 filtered_seq_len = 32
 filtered_seq_step_size = 1
 use_optical_flow = 1
-use_pose_img = 0
+use_pose_img = 1
 batch_size = 14
 workers = 18
 use_cuda = True
@@ -26,13 +26,13 @@ checkpoint = ''
 expName = 'fencing_exp_poses_as_img_c3d_{lr}_wd_0_b_{batch}_look_{seq_len}_step{step}_{date}_optflow{optflow}_posimg{poseimg}'.format(lr=learning_rate, batch=batch_size, seq_len=filtered_seq_len, step=filtered_seq_step_size, date=datetime.now(), optflow=use_optical_flow, poseimg= use_pose_img)
 epochs = 100
 adjust_lr_manually = 1
-max_not_improving_epochs = 10
+max_not_improving_epochs = 7
 clip_grad = 0.5
 ignore_grad = 10000.0
 labels_arr = np.array([0, 1, 2])
 device = torch.device("cuda" if use_cuda else "cpu")
 
-
+print(expName)
 poses_imgs_path = '../video'
 
 valid_dataset = Dataset(mode='val', txt_path='network/train_val_test_splitter/val.txt', poses_path=os.path.join(poses_imgs_path, 'val'),
@@ -179,7 +179,7 @@ def main():
             if epochs_since_improvement == max_not_improving_epochs:
                 break
             if epochs_since_improvement > 0 and epochs_since_improvement % 4 == 0:
-                adjust_learning_rate(optimizer, 0.6)
+                adjust_learning_rate(optimizer, 0.5)
 
         train_avg_loss, train_avg_acc = train(model, criterion, optimizer, epoch, writer)
         val_avg_loss, val_avg_acc = evaluate(model, criterion, epoch, writer, valid_loader)
