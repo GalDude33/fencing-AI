@@ -13,7 +13,7 @@ from network_pose_as_img.dataloader2 import Dataset
 from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, accuracy, check_grad
 import argparse
 import sys
-
+from torchsummary import summary
 
 parser = argparse.ArgumentParser()
 # Env options:
@@ -156,6 +156,10 @@ def main():
     start_epoch = 1
 
     model = FencingModel(use_optical_flow=args.use_optical_flow, use_pose_img=args.use_pose_img).to(device)
+
+    summary(model, input_size=[(args.filtered_seq_len//args.filtered_seq_step_size, 2, 3, 128, 256), \
+                               (args.filtered_seq_len//args.filtered_seq_step_size, 2, 2, 128, 256)])
+
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=weight_decay)
 
     if checkpoint != '':

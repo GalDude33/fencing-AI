@@ -1,18 +1,12 @@
+
 import torch.nn as nn
 import torch
 
 
 class C3D(nn.Module):
 
-    def __init__(self, use_optical_flow, use_pose_img=True):
+    def __init__(self, input_channel_num):
         super(C3D, self).__init__()
-
-
-        input_channel_num = 0
-        if use_pose_img:
-            input_channel_num += 6
-        if use_optical_flow:
-            input_channel_num += 4
 
         x = 32
         self.conv1 = nn.Conv3d(input_channel_num, x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
@@ -90,7 +84,14 @@ class FencingModel(nn.Module):
         super(FencingModel, self).__init__()
         self.use_optical_flow = use_optical_flow
         self.use_pose_img = use_pose_img
-        self.c3d = C3D(self.use_optical_flow, self.use_pose_img)
+
+        self.input_channel_num = 0
+        if self.use_pose_img:
+            self.input_channel_num += 6
+        if self.use_optical_flow:
+            self.input_channel_num += 4
+
+        self.c3d = C3D(self.input_channel_num)
 
     def forward(self, frames_pose_tensor, frames_optical_flow_tensor=None):
         if self.use_optical_flow:
