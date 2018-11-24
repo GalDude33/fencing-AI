@@ -4,7 +4,7 @@ import torch
 
 class C3D(nn.Module):
 
-    def __init__(self, use_optical_flow, use_pose_img=True):
+    def __init__(self, players_in_same_channel, use_optical_flow, use_pose_img=True):
         super(C3D, self).__init__()
 
 
@@ -14,8 +14,11 @@ class C3D(nn.Module):
         if use_optical_flow:
             input_channel_num += 4
 
+        if players_in_same_channel:
+            input_channel_num /= 2
+
         x = 32
-        self.conv1 = nn.Conv3d(input_channel_num, x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
+        self.conv1 = nn.Conv3d(int(input_channel_num), x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
         self.pool1 = nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2))
 
         self.conv2 = nn.Conv3d(x, 2*x, kernel_size=(3, 3, 3), padding=(1, 1, 1))
@@ -49,6 +52,8 @@ class C3D(nn.Module):
 
     def forward(self, x):
 
+        time_dimension_size = x.shape[2]
+
         h = self.relu(self.conv1(x))
         h = self.pool1(h)
 
@@ -67,9 +72,10 @@ class C3D(nn.Module):
         h = self.relu(self.conv5b(h))
         h = self.pool5(h)
 
-        h = self.relu(self.conv6a(h))
-        h = self.relu(self.conv6b(h))
-        h = self.pool6(h)
+        if time_dimension_size>=32:
+            h = self.relu(self.conv6a(h))
+            h = self.relu(self.conv6b(h))
+            h = self.pool6(h)
 
         h = h.view(-1, 8192)
         h = self.relu(self.fc6(h))
@@ -86,11 +92,12 @@ class C3D(nn.Module):
 
 class FencingModel(nn.Module):
 
-    def __init__(self, use_optical_flow, use_pose_img=True):
+    def __init__(self, players_in_same_channel, use_optical_flow, use_pose_img=True):
         super(FencingModel, self).__init__()
         self.use_optical_flow = use_optical_flow
         self.use_pose_img = use_pose_img
-        self.c3d = C3D(self.use_optical_flow, self.use_pose_img)
+        self.players_in_same_channel = players_in_same_channel
+        self.c3d = C3D(self.players_in_same_channel, self.use_optical_flow, self.use_pose_img)
 
     def forward(self, frames_pose_tensor, frames_optical_flow_tensor=None):
         if self.use_optical_flow:

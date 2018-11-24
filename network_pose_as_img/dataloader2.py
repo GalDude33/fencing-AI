@@ -17,11 +17,13 @@ from scipy.ndimage import zoom
 
 class Dataset(torchdata.Dataset):
 
-    def __init__(self, mode, txt_path, poses_path, filtered_seq_len, filtered_seq_step_size, use_optical_flow):
+    def __init__(self, mode, txt_path, poses_path, filtered_seq_len, filtered_seq_step_size, use_optical_flow, players_in_same_channel):
         self.seq_len = 60
         self.filtered_seq_len = filtered_seq_len
         self.filtered_seq_step_size = filtered_seq_step_size
         self.use_optical_flow = use_optical_flow
+        self.players_in_same_channel = players_in_same_channel
+
         video_names_to_filter = [x.rstrip() for x in open(txt_path, 'r')]
         self.poses_clips_path = poses_path
         vid_pose_files = [vid_pose_file for vid_pose_file in glob.glob(self.poses_clips_path + "/*.mp4")]
@@ -50,8 +52,9 @@ class Dataset(torchdata.Dataset):
         clip_name, label = self.objects[index]
         clip_path = os.path.join(self.poses_clips_path, clip_name + '.mp4')
         cap = CV2VideoCapture(clip_path)
-        frames = np.zeros((self.filtered_seq_len, 2, 128, 256, 3), dtype=np.uint8)
-        flow = np.zeros((self.filtered_seq_len, 2, 128, 256, 2), dtype=np.float32)
+        trg_people_channel_num = 1 if self.players_in_same_channel else 2
+        frames = np.zeros((self.filtered_seq_len, trg_people_channel_num, 128, 256, 3), dtype=np.uint8)
+        flow = np.zeros((self.filtered_seq_len, trg_people_channel_num, 128, 256, 2), dtype=np.float32)
         angle, translate, scale = 0.0, 0.0, 1.0
 
         if self.mode == 'train':
@@ -72,7 +75,7 @@ class Dataset(torchdata.Dataset):
                         # augmentations
                         img = torchvision.transforms.functional.affine(img, angle=angle, translate=translate, scale=scale, shear=0, resample=0, fillcolor=0)
                         curr_frame_img = np.array(img)
-                    frames[seqs_to_count.index(seq_ind), p] = curr_frame_img
+                    frames[seqs_to_count.index(seq_ind), p % trg_people_channel_num] += curr_frame_img
 
         if self.mode == 'train' and flip:
             label = flip_label(label)
@@ -80,7 +83,7 @@ class Dataset(torchdata.Dataset):
 
         if self.use_optical_flow:
             for i in range(self.filtered_seq_len - 1):
-                for p in [0, 1]:
+                for p in range(trg_people_channel_num):
                     flow[i, p] = self.calculate_optical_flow(frames[i, p], frames[i + 1, p])
 
         frames = frames.astype(np.float32)
