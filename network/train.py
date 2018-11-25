@@ -13,7 +13,7 @@ from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, a
 
 
 batch_size = 128
-workers = 2
+workers = 16
 use_cuda = True
 learning_rate = 1e-4
 checkpoint = ''
@@ -54,7 +54,7 @@ def train(model, criterion, optimizer, epoch, writer):
     total = 0   # Reset every plot_every
     acc_meter = AverageMeter()
     output_count_meter = BinCounterMeter(labels_arr)
-    train_enum = train_loader#tqdm(train_loader, desc='Train epoch %d' % epoch)
+    train_enum = tqdm(train_loader, desc='Train epoch %d' % epoch)
 
     for pose_dsc, label, _ in train_enum:
         pose_dsc, label = pose_dsc.to(device), label.to(device)
@@ -105,7 +105,7 @@ def evaluate(model, criterion, epoch, writer, loader):
     total = 0
     acc_meter = AverageMeter()
     output_count_meter = BinCounterMeter(labels_arr)
-    valid_enum = loader #tqdm(loader, desc='Valid epoch %d' % epoch)
+    valid_enum = tqdm(loader, desc='Valid epoch %d' % epoch)
 
     with torch.no_grad():
         for pose_dsc, label, _ in valid_enum:
