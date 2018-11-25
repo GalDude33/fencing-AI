@@ -93,7 +93,7 @@ class Dataset(torchdata.Dataset):
         #difference of poses
         video_dsc_mean = torch.mean(_video_dsc, dim=3)
         video_dsc_as_diff = (video_dsc_mean[1:]-video_dsc_mean[:-1])
-        video_dsc_as_diff[:,1,:,0] *= -1
+        video_dsc_as_diff[:,1,:,0] *= (-1)
 
         video_dsc_norm = normalize_point_pair_pose_arr(_video_dsc)
         video_dsc_norm_mean_points = torch.mean(video_dsc_norm, dim=3)
