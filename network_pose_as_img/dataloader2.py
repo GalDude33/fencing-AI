@@ -167,7 +167,7 @@ class Dataset(torchdata.Dataset):
                     pose[p, :, :, 1] = pose[p, :, :, 1] / 2.0
                     curr_flow = self.calculate_pose_optical_flow(pose[i, p], pose[i + 1, p]) #.transpose([1,0,2])
                     curr_flow = curr_flow[max(0, int(y_min / 2) - padding):min(720 // 2,int(y_max / 2) + padding), :, :]
-                    curr_flow = zoom(curr_flow, (256, 128, 2))
+                    curr_flow = zoom(curr_flow, np.divide((256, 128, 2), curr_flow.shape), order=0)
 
                     if self.mode == 'train':
                         #print(curr_flow.shape)
