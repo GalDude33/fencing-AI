@@ -144,7 +144,6 @@ class Dataset(torchdata.Dataset):
 
         if self.use_pose_optical_flow:
             pose = self.poses_dict[clip_name]
-            print(pose.max(), pose.min())
 
             def get_y_lim(curr_poses):
                 all_y = curr_poses[:, :, :, :, 1]
@@ -160,19 +159,21 @@ class Dataset(torchdata.Dataset):
                 return y_min, y_max
 
             y_min, y_max = get_y_lim(pose)
+            print('pose max/min:',y_max, y_min)
 
+            pose[:, :, :, :, 0] = np.minimum(pose[:, :, :, :, 0] / 5.0, 1279//5)
+            pose[:, :, :, :, 1] = np.minimum(pose[:, :, :, :, 1] / 2.0, 719//2)
             for i in range(self.filtered_seq_len - 1):
                 for p in range(trg_people_channel_num):
-                    pose[p, :, :, 0] = pose[p, :, :, 0] / 5.0
-                    pose[p, :, :, 1] = pose[p, :, :, 1] / 2.0
                     curr_flow = self.calculate_pose_optical_flow(pose[i, p], pose[i + 1, p]) #.transpose([1,0,2])
-                    curr_flow = curr_flow[max(0, int(y_min / 2) - padding):min(720 // 2,int(y_max / 2) + padding), :, :]
+                    curr_flow = curr_flow[:, max(0, int(y_min / 2) - padding):min(720 // 2,int(y_max / 2) + padding), :]
+                    print('flow shape', curr_flow.shape)
                     curr_flow = zoom(curr_flow, np.divide((256, 128, 2), curr_flow.shape), order=0)
 
                     if self.mode == 'train':
                         #print(curr_flow.shape)
                         curr_flow = affine_transform(curr_flow, affine_matrix)
-                    flow[i, p] = curr_flow
+                    flow[i, p] = curr_flow.transpose([1,0,2])
 
         frames = frames.astype(np.float32)
         frames = frames / 255.0
@@ -242,5 +243,5 @@ class Dataset(torchdata.Dataset):
 
     @staticmethod
     def calculate_pose_optical_flow(prev_pose, next_pose):
-        flow = pose2flow(prev_pose.astype(int), next_pose.astype(int), 1024, 720)
+        flow = pose2flow(prev_pose.astype(int), next_pose.astype(int), 720//2, 1280//5)
         return flow
