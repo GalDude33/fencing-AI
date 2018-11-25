@@ -21,7 +21,7 @@ from PIL import Image
 from pyflow import pyflow
 from scipy.ndimage import zoom, affine_transform
 
-from optical_flow_from_pose import pose2flow
+from optical_flow_from_pose import pose2flow, draw_hsv
 
 padding = 33
 
@@ -163,16 +163,20 @@ class Dataset(torchdata.Dataset):
             pose[:, :, :, :, 0] = np.minimum(pose[:, :, :, :, 0] / 5.0, 1279//5)
             pose[:, :, :, :, 1] = np.minimum(pose[:, :, :, :, 1] / 2.0, 719//2)
             for i in range(self.filtered_seq_len - 1):
-                for p in range(trg_people_channel_num):
+                for p in [0, 1]:
                     curr_flow = self.calculate_pose_optical_flow(pose[i, p], pose[i + 1, p]) #.transpose([1,0,2])
-                    curr_flow = curr_flow[:, max(0, int(y_min / 2) - padding):min(720 // 2,int(y_max / 2) + padding), :]
+                    curr_flow = curr_flow[max(0, int(y_min / 2) - padding):min(720 // 2,int(y_max / 2) + padding), :, :]
                     #print('flow shape', curr_flow.shape)
-                    curr_flow = zoom(curr_flow, np.divide((256, 128, 2), curr_flow.shape), order=0)
+                    curr_flow = zoom(curr_flow, np.divide((128, 256, 2), curr_flow.shape), order=0)
 
                     if self.mode == 'train':
                         #print(curr_flow.shape)
-                        curr_flow = affine_transform(curr_flow, affine_matrix)
-                    flow[i, p] = curr_flow.transpose([1,0,2])
+                        flow_img = torchvision.transforms.functional.affine(Image.fromarray(draw_hsv(curr_flow)), angle=angle, translate=translate,
+                                                                       scale=scale, shear=shear, resample=0, fillcolor=0)
+                        #curr_flow = affine_transform(curr_flow, affine_matrix, order=0)
+                        flow_arr = np.array(flow_img)
+                        curr_flow = np.stack([flow_arr[:,:,0], flow_arr[:,:,2]], axis=2)
+                    flow[i, p % trg_people_channel_num] += curr_flow#.transpose([1,0,2])
 
         frames = frames.astype(np.float32)
         frames = frames / 255.0
