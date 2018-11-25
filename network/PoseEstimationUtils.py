@@ -61,6 +61,24 @@ def convert_points_to_lines(coords_point_arr):
     return coords_point_pair_arr
 
 
+def convert_lines_to_points(coords_point_pair_arr):
+    people_num = coords_point_pair_arr.shape[0]
+    coords_point_arr = np.zeros((people_num, NUM_POINTS, 2))
+    zero_point = np.array([0., 0.])
+
+    for i, pair in enumerate(joint_to_limb_heatmap_relationship):
+        curr_limb_point0 = coords_point_pair_arr[:, i, 0]
+        curr_limb_point1 = coords_point_pair_arr[:, i, 1]
+
+        for p in range(people_num):
+            if not np.array_equal(curr_limb_point0[p], zero_point):
+                coords_point_arr[p, pair[0]] = curr_limb_point0[p]
+            if not np.array_equal(curr_limb_point1[p], zero_point):
+                coords_point_arr[p, pair[1]] = curr_limb_point1[p]
+
+    return coords_point_arr
+
+
 def find_previous_frame_with_two_players(all_fencing_players_point_pair_coords, seq_ind):
     # find previous frame with two players but look maximum 10 frames backward,
     # if not return previous frame with one player, if not return -1
@@ -380,7 +398,7 @@ def sort_fencing_players(fencing_players_coords):
 
 def normalize_point_pair_pose_arr(fencing_players_coords):
     fencing_players_coords[:, :, :, :, 0] = fencing_players_coords[:, :, :, :, 0] / IMG_SHAPE[0]
-    fencing_players_coords[:, :, :, :, 1] = fencing_players_coords[:, :, :, :, 1] / IMG_SHAPE[1]
+    #fencing_players_coords[:, :, :, :, 1] = fencing_players_coords[:, :, :, :, 1] / IMG_SHAPE[1]
     return fencing_players_coords
 
 
