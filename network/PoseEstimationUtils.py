@@ -380,7 +380,7 @@ def sort_fencing_players(fencing_players_coords):
 
 def normalize_point_pair_pose_arr(fencing_players_coords):
     fencing_players_coords[:, :, :, :, 0] = fencing_players_coords[:, :, :, :, 0] / IMG_SHAPE[0]
-    fencing_players_coords[:, :, :, :, 1] = fencing_players_coords[:, :, :, :, 1] / IMG_SHAPE[1]
+    #fencing_players_coords[:, :, :, :, 1] = fencing_players_coords[:, :, :, :, 1] / IMG_SHAPE[1]
     return fencing_players_coords
 
 

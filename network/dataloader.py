@@ -10,7 +10,7 @@ import torch
 import torch.utils.data as torchdata
 from tqdm import tqdm
 from network.PoseEstimationUtils import getFencingPlayersPoseArr, normalize_point_pair_pose_arr
-from network.utils import get_label_from_letter
+from network.utils import get_label_from_letter, flip_label
 
 
 class Dataset(torchdata.Dataset):
@@ -36,10 +36,10 @@ class Dataset(torchdata.Dataset):
 
                     curr_clip_name, curr_clip_num, curr_label, curr_frame_ind = self.getClipInfoFromFilename(descriptor_file)
 
-                    if curr_label == 'T':
-                        # if it is first clip of video, ignore it
-                        if int(curr_clip_num) == 0:
-                            continue
+                    #if curr_label == 'T':
+                    #    # if it is first clip of video, ignore it
+                    #    #if int(curr_clip_num) == 0:
+                    #    continue
 
                     if curr_clip_name not in relevant_files:
                         relevant_files[curr_clip_name] = []
@@ -53,9 +53,6 @@ class Dataset(torchdata.Dataset):
                 curr_file_path = inputForPool[i][0]
                 curr_clip_name, curr_clip_num, curr_label, curr_frame_ind = self.getClipInfoFromFilename(curr_file_path)
 
-                # add normalization#TODO- deal better with normalization
-                curr_res = normalize_point_pair_pose_arr(curr_res)
-
                 self.objectsMap[curr_clip_name] = (curr_res, curr_label)
 
             for clip in self.objectsMap.keys():
@@ -67,18 +64,47 @@ class Dataset(torchdata.Dataset):
             with open(pickle_file, 'wb') as f:
                 pickle.dump(self.objects, f)
 
-        if mode=='train':
+        #self.objects = [obj for obj in self.objects if obj[1]!=2]
+        self.mode = mode
+        if self.mode=='train':
             random.shuffle(self.objects)
 
 
     def __getitem__(self, index):
-        video_dsc, label, base_clip_name = self.objects[index]
-        video_dsc = video_dsc.view(video_dsc.size(0), -1).float()
-        return video_dsc, label, base_clip_name
+        video_dsc, label, base_clip_name = self.objects[index % len(self.objects)]
+
+        _video_dsc = video_dsc
+
+        flip = random.choice([0,1])
+        if self.mode=='train' and flip:
+            label = flip_label(label)
+            _video_dsc[:,:,:,:,0] = 1280.0-_video_dsc[:,:,:,:,0]
+            _video_dsc[_video_dsc == 1280.0] = 0
+
+        y_values = _video_dsc[:, :, :, :, 1].numpy()
+        y_min = y_values[y_values > 0].min()
+        y_max = y_values[y_values > 0].max()
+        _video_dsc[:, :, :, :, 1] = torch.clamp(input=_video_dsc[:, :, :, :, 1]-y_min, min=0)
+        _video_dsc[:, :, :, :, 1] = _video_dsc[:, :, :, :, 1]/(y_max-y_min)
+
+        #difference of poses
+        video_dsc_mean = torch.mean(_video_dsc, dim=3)
+        video_dsc_as_diff = (video_dsc_mean[1:]-video_dsc_mean[:-1])
+        video_dsc_as_diff[:,1,:,0] *= -1
+
+        video_dsc_norm = normalize_point_pair_pose_arr(_video_dsc)
+        video_dsc_norm_mean_points = torch.mean(video_dsc_norm, dim=3)
+
+        video_dcs = torch.cat([video_dsc_as_diff, video_dsc_norm_mean_points[1:]], dim=-1)
+
+        video_dcs = video_dcs[52 - 16:52].float()
+        filtered_seq_len, people_num, limbs_num, limb_feature_size = video_dcs.shape
+        video_dcs = video_dcs.view(filtered_seq_len, people_num, -1)
+        return video_dcs, label, base_clip_name
 
 
     def __len__(self):
-        return len(self.objects)
+        return len(self.objects) * 2
 
 
     def getClipInfoFromFilename(self, descriptor_file):
