@@ -23,11 +23,11 @@ def getStatistics(txt_path, mode):
             if curr_clip_name not in objectsMap:
                 label = getLabelFromFilename(descriptor_file)
 
-                if label=='T':
+                #if label=='T':
                     #if it is first clip of video, ignore it
-                    clip_num = getClipNumberFromFilename(curr_clip_name)
-                    if int(clip_num)==0:
-                        continue
+                    #clip_num = getClipNumberFromFilename(curr_clip_name)
+                    #if int(clip_num)==0:
+                    #    continue
 
                 objectsMap[curr_clip_name] = label
 
