@@ -159,7 +159,7 @@ class Dataset(torchdata.Dataset):
                 return y_min, y_max
 
             y_min, y_max = get_y_lim(pose)
-            print('pose max/min:',y_max, y_min)
+            #print('pose max/min:',y_max, y_min)
 
             pose[:, :, :, :, 0] = np.minimum(pose[:, :, :, :, 0] / 5.0, 1279//5)
             pose[:, :, :, :, 1] = np.minimum(pose[:, :, :, :, 1] / 2.0, 719//2)
@@ -167,7 +167,7 @@ class Dataset(torchdata.Dataset):
                 for p in range(trg_people_channel_num):
                     curr_flow = self.calculate_pose_optical_flow(pose[i, p], pose[i + 1, p]) #.transpose([1,0,2])
                     curr_flow = curr_flow[:, max(0, int(y_min / 2) - padding):min(720 // 2,int(y_max / 2) + padding), :]
-                    print('flow shape', curr_flow.shape)
+                    #print('flow shape', curr_flow.shape)
                     curr_flow = zoom(curr_flow, np.divide((256, 128, 2), curr_flow.shape), order=0)
 
                     if self.mode == 'train':
