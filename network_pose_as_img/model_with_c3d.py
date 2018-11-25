@@ -82,9 +82,9 @@ class C3D(nn.Module):
 
 class FencingModel(nn.Module):
 
-    def __init__(self, players_in_same_channel, use_optical_flow, use_pose_img=True):
+    def __init__(self, players_in_same_channel, use_optical_flow, use_pose_optical_flow, use_pose_img=True):
         super(FencingModel, self).__init__()
-        self.use_optical_flow = use_optical_flow
+        self.use_optical_flow = use_optical_flow or use_pose_optical_flow
         self.use_pose_img = use_pose_img
 
         self.input_channel_num = 0

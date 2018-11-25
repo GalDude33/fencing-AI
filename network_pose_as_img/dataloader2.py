@@ -62,28 +62,28 @@ class Dataset(torchdata.Dataset):
                 clip_names = set([os.path.join(Path(_).parent.stem,Path(_).stem[:-len('-00_keypoints')]) for _ in descriptor_files])
 
                 padding = 33
-                def fix_poses(poses):
-                    all_y = poses[:, :, :, :, 1]
-                    all_y_non_zero = all_y[all_y > 0]
-                    if len(all_y_non_zero) > 0:
-                        y_max = np.max(all_y_non_zero)
-                        y_min = np.min(all_y_non_zero)
-                    else:
-                        y_max = 0
-                        y_min = 0
-                    poses[:, :, :, 0] = poses[:, :, :, 0] / 5.0
-                    poses[:, :, :, 1] = poses[:, :, :, 1] / 2.0
+                #def fix_poses(poses):
+                #    all_y = poses[:, :, :, :, 1]
+                #    all_y_non_zero = all_y[all_y > 0]
+                #    if len(all_y_non_zero) > 0:
+                #        y_max = np.max(all_y_non_zero)
+                #        y_min = np.min(all_y_non_zero)
+                #    else:
+                #        y_max = 0
+                #        y_min = 0
+                #    poses[:, :, :, 0] = poses[:, :, :, 0] / 5.0
+                #    poses[:, :, :, 1] = poses[:, :, :, 1] / 2.0
 
-                    poses[:, :, :, 1] = poses[:, :, :, 1] - max(0, int(y_min / 2) - padding)
+                #    poses[:, :, :, 1] = poses[:, :, :, 1] - max(0, int(y_min / 2) - padding)
 
-                    poses[:, :, :, 1] = poses[:, :, :, 1] * 128 // (min(720 // 2,int(y_max / 2) + padding))
+                #    poses[:, :, :, 1] = poses[:, :, :, 1] * 128 // (min(720 // 2,int((y_max / 2) + padding))
 
-                    return poses
+                #    return poses
 
                 def clip_name_to_pose(clip_name):
                     curr_descriptors = [os.path.join(pose_jsons_dir, '{}-{:02d}_keypoints.json').format(clip_name, i) for i in range(1, 60 + 1)]
                     poses = getFencingPlayersPoseArr(curr_descriptors)
-                    poses = fix_poses(poses)
+                    #poses = fix_poses(poses)
                     return (clip_name.split('/')[-1], poses)
                 with Pool() as p:
                     self.poses_dict = dict(p.map(clip_name_to_pose, clip_names))
@@ -109,7 +109,9 @@ class Dataset(torchdata.Dataset):
             angle, translate, scale = self.get_augmentation_params(angle_max=15, translate_max=((-10, 10), (-20, 10)),
                                                                    scale_range=(0.75, 1.15))
             center = (128 * 0.5 + 0.5, 256 * 0.5 + 0.5)
-            affine_matrix = _get_inverse_affine_matrix(center, angle, translate, scale, shear=0)
+            affine_matrix = np.eye(3)
+            affine_matrix[:, :2] = np.array(_get_inverse_affine_matrix(center, angle, translate, scale, shear=0)).reshape(3,2)
+            #print(affine_matrix)
 
         seqs_to_count = [i for i in range(self.seq_len) if
                          (i >= 0 and i <= 52 and i % self.filtered_seq_step_size == 0)]
@@ -140,11 +142,13 @@ class Dataset(torchdata.Dataset):
 
         if self.use_pose_optical_flow:
             pose = self.poses_dict[clip_name]
+            print(pose.max(), pose.min())
 
             for i in range(self.filtered_seq_len - 1):
                 for p in range(trg_people_channel_num):
-                    curr_flow = self.calculate_pose_optical_flow(pose[i, p], pose[i + 1, p])
+                    curr_flow = self.calculate_pose_optical_flow(pose[i, p], pose[i + 1, p]) #.transpose([1,0,2])
                     if self.mode == 'train':
+                        #print(curr_flow.shape)
                         curr_flow = affine_transform(curr_flow, affine_matrix)
                     flow[i, p] = curr_flow
 
@@ -216,5 +220,5 @@ class Dataset(torchdata.Dataset):
 
     @staticmethod
     def calculate_pose_optical_flow(prev_pose, next_pose):
-        flow = pose2flow(prev_pose, next_pose, 256, 128)
+        flow = pose2flow(prev_pose.astype(int), next_pose.astype(int), 256, 128)
         return flow

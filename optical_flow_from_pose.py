@@ -101,7 +101,7 @@ class LineOpticalFlow:
 
         # Solve the least squares problem X * A = Y
         # to find our transformation matrix A
-        A, res, rank, s = np.linalg.lstsq(X, Y)
+        A, res, rank, s = np.linalg.lstsq(X, Y, rcond=None)
 
         self._transform = lambda x: unpad(np.dot(pad(x), A))
 
