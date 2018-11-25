@@ -170,7 +170,7 @@ def main():
     startTime = datetime.now()
     start_epoch = 1
 
-    model = FencingModel(players_in_same_channel=args.players_in_same_channel, use_optical_flow=args.use_optical_flow,
+    model = FencingModel(players_in_same_channel=args.players_in_same_channel, use_optical_flow=args.use_optical_flow, use_pose_optical_flow=args.use_pose_optical_flow,
                          use_pose_img=args.use_pose_img).to(device)
 
     summary(model, input_size=[(args.filtered_seq_len, 1 if args.players_in_same_channel else 2, 3, 128, 256), \
