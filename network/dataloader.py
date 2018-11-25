@@ -11,33 +11,35 @@ import torch.utils.data as torchdata
 from tqdm import tqdm
 from network.PoseEstimationUtils import getFencingPlayersPoseArr, normalize_point_pair_pose_arr, convert_lines_to_points
 from network.utils import get_label_from_letter, flip_label
+from skimage.transform import AffineTransform
 
 
 class Dataset(torchdata.Dataset):
 
     def __init__(self, mode, txt_path, descriptor_dir):
         print('starting dataloader init')
-        video_names_to_filter = [x.rstrip() for x in open(txt_path, 'r')]
-        descriptor_files = [vid_dsc_file for vid_dsc_file in glob.glob(descriptor_dir + "/*.json")]
 
         self.objects = []
         self.objectsMap = {}
 
-        pickle_file = Path('network/train_val_test_splitter/'+mode+'.pickle')
+        pickle_file = Path('network/train_val_test_splitter/' + mode + '.pickle')
 
         if pickle_file.is_file():
             with open(pickle_file, 'rb') as f:
                 self.objects = pickle.load(f)
         else:
+            video_names_to_filter = [x.rstrip() for x in open(txt_path, 'r')]
+            descriptor_files = [vid_dsc_file for vid_dsc_file in glob.glob(descriptor_dir + "/*.json")]
             max_parallel = 8
             relevant_files = {}
 
             for descriptor_file in descriptor_files:
                 if any(vid_filter for vid_filter in video_names_to_filter if vid_filter in descriptor_file):
 
-                    curr_clip_name, curr_clip_num, curr_label, curr_frame_ind = self.getClipInfoFromFilename(descriptor_file)
+                    curr_clip_name, curr_clip_num, curr_label, curr_frame_ind = self.getClipInfoFromFilename(
+                        descriptor_file)
 
-                    #if curr_label == 'T':
+                    # if curr_label == 'T':
                     #    # if it is first clip of video, ignore it
                     #    #if int(curr_clip_num) == 0:
                     #    continue
@@ -48,7 +50,8 @@ class Dataset(torchdata.Dataset):
 
             with Pool(max_parallel) as pool:
                 inputForPool = [v for v in relevant_files.values()]
-                res = list(tqdm(pool.imap(getFencingPlayersPoseArr, inputForPool, chunksize=20), total=len(inputForPool)))
+                res = list(
+                    tqdm(pool.imap(getFencingPlayersPoseArr, inputForPool, chunksize=20), total=len(inputForPool)))
 
             for i, curr_res in enumerate(res):
                 curr_file_path = inputForPool[i][0]
@@ -65,60 +68,85 @@ class Dataset(torchdata.Dataset):
             with open(pickle_file, 'wb') as f:
                 pickle.dump(self.objects, f)
 
-        #self.objects = [obj for obj in self.objects if obj[1]!=2]
+        # self.objects = [obj for obj in self.objects if obj[1]!=2]
         self.mode = mode
-        if self.mode=='train':
+        if self.mode == 'train':
             random.shuffle(self.objects)
 
         print('finishing dataloader init')
 
+    def get_augmentation_params(self, angle_max=3, translate_max=5, scale_range=0.1, max_shear=2):
+        scale = np.random.normal(1, scale_range, size=2)  # 0.75-1.15
+        angle = np.random.normal(0, angle_max)
+        translate = np.random.normal(0, translate_max, size=2)
+        shear = np.random.normal(0, max_shear)
+        return angle, translate, scale, shear
+
+    def augment_player(self, p):
+        angle, translate, scale, shear = self.get_augmentation_params()
+        tform = AffineTransform(scale=scale, rotation=np.deg2rad(angle), shear=np.deg2rad(shear),
+                                translation=translate)
+        transformation_res = []
+        batch_size = p.shape[0]
+        for b in range(batch_size):
+            transformation_res.append(tform(p[b]))
+        return np.array(transformation_res)
 
     def __getitem__(self, index):
-        video_dsc, label, base_clip_name = self.objects[index]# % len(self.objects)]
+        video_dsc, label, base_clip_name = self.objects[index]  # % len(self.objects)]
 
-        video_dsc = video_dsc[52 - 16- 1:52]#.float()
+        video_dsc = video_dsc[52 - 16 - 1:52]  # .float()
         seq_len = video_dsc.shape[0]
         _video_dsc = []
         video_dsc_as_numpy = video_dsc.numpy()
         for seq_ind in range(seq_len):
             _video_dsc.append(convert_lines_to_points(video_dsc_as_numpy[seq_ind]))
 
-        _video_dsc = np.array(_video_dsc)#torch.from_numpy(np.array(_video_dsc))
-        flip = random.choice([0,1])
-        if self.mode=='train' and flip:
+        _video_dsc = np.array(_video_dsc)  # torch.from_numpy(np.array(_video_dsc))
+
+        # Augment
+        _video_dsc[:, 0] = self.augment_player(_video_dsc[:, 0])
+        _video_dsc[:, 1] = self.augment_player(_video_dsc[:, 1])
+        _video_dsc += np.random.normal(scale=3, size=_video_dsc.shape)
+
+        _video_dsc[:, :, :, 0] = np.clip(a=_video_dsc[:,:,:,0], a_min=0, a_max=1280.0)
+        _video_dsc[:, :, :, 1] = np.clip(a=_video_dsc[:, :, :, 1], a_min=0, a_max=720.0)
+
+        flip = random.choice([0, 1])
+        if self.mode == 'train' and flip:
             label = flip_label(label)
-            _video_dsc[:,:,:,0] = 1280.0-_video_dsc[:,:,:,0]
+            _video_dsc[:, :, :, 0] = 1280.0 - _video_dsc[:, :, :, 0]
             _video_dsc[_video_dsc == 1280.0] = 0
 
-        y_values = _video_dsc[:, :, :, 1]#.numpy()
+        y_values = _video_dsc[:, :, :, 1]  # .numpy()
         y_values_bigger_than_0 = y_values[y_values > 0]
 
-        if len(y_values_bigger_than_0)>0:
+        if len(y_values_bigger_than_0) > 0:
             y_min = y_values_bigger_than_0.min()
             y_max = y_values_bigger_than_0.max()
-            _video_dsc[:, :, :, 1] = np.clip(a=_video_dsc[:, :, :, 1]-y_min, a_min=0, a_max=None)#torch.clamp(input=_video_dsc[:, :, :, 1]-y_min, min=0)
-            _video_dsc[:, :, :, 1] = _video_dsc[:, :, :, 1]/(y_max-y_min)
+            _video_dsc[:, :, :, 1] = np.clip(a=_video_dsc[:, :, :, 1] - y_min, a_min=0,
+                                             a_max=None)  # torch.clamp(input=_video_dsc[:, :, :, 1]-y_min, min=0)
+            _video_dsc[:, :, :, 1] = _video_dsc[:, :, :, 1] / (y_max - y_min)
 
-        #difference of poses
-        #video_dsc_mean = torch.mean(_video_dsc, dim=3)
+        # difference of poses
+        # video_dsc_mean = torch.mean(_video_dsc, dim=3)
         video_dsc_mean = _video_dsc
-        video_dsc_as_diff = (video_dsc_mean[1:]-video_dsc_mean[:-1])
-        video_dsc_as_diff[:,1,:,0] *= (-1)
+        video_dsc_as_diff = (video_dsc_mean[1:] - video_dsc_mean[:-1])
+        video_dsc_as_diff[:, 1, :, 0] *= (-1)
 
         video_dsc_norm = normalize_point_pair_pose_arr(_video_dsc)
-        #video_dsc_norm_mean_points = torch.mean(video_dsc_norm, dim=3)
+        # video_dsc_norm_mean_points = torch.mean(video_dsc_norm, dim=3)
 
-        video_dcs = np.concatenate((video_dsc_as_diff, video_dsc_norm[1:]), axis=-1)#torch.cat([video_dsc_as_diff, video_dsc_norm[1:]], dim=-1)
+        video_dcs = np.concatenate((video_dsc_as_diff, video_dsc_norm[1:]),
+                                   axis=-1)  # torch.cat([video_dsc_as_diff, video_dsc_norm[1:]], dim=-1)
 
         video_dcs = torch.from_numpy(video_dcs)
         filtered_seq_len, people_num, limbs_num, limb_feature_size = video_dcs.shape
         video_dcs = video_dcs.view(filtered_seq_len, people_num, -1)
         return video_dcs.float(), label, base_clip_name
 
-
     def __len__(self):
         return len(self.objects)
-
 
     def getClipInfoFromFilename(self, descriptor_file):
         frame_ind_str_loc = re.search("-\d{2}_\w", descriptor_file).regs[0][0] + 1
@@ -129,12 +157,10 @@ class Dataset(torchdata.Dataset):
         curr_clip_num = self.getClipNumberFromFilename(curr_clip_name)
         return curr_clip_name, curr_clip_num, curr_label, frame_ind
 
-
     def getLabelFromFilename(self, descriptor_file):
         filename = os.path.splitext(os.path.basename(descriptor_file))[0]
         result_letter = filename.split('-')[-3]
         return get_label_from_letter(result_letter)
-
 
     def getClipNumberFromFilename(self, clip_name):
         return clip_name.split('-')[-3]
