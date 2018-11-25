@@ -102,9 +102,7 @@ class Dataset(torchdata.Dataset):
         trg_people_channel_num = 1 if self.players_in_same_channel else 2
         frames = np.zeros((self.filtered_seq_len, trg_people_channel_num, 128, 256, 3), dtype=np.uint8)
         flow = np.zeros((self.filtered_seq_len, trg_people_channel_num, 128, 256, 2), dtype=np.float32)
-        pose_flow = np.zeros((self.filtered_seq_len, trg_people_channel_num, 128, 256, 2), dtype=np.float32)
         angle, translate, scale = 0.0, 0.0, 1.0
-        pose = self.poses_dict[clip_name]
 
         if self.mode == 'train':
             flip = random.choice([0, 1])
@@ -141,6 +139,8 @@ class Dataset(torchdata.Dataset):
                     flow[i, p] = self.calculate_optical_flow(frames[i, p], frames[i + 1, p])
 
         if self.use_pose_optical_flow:
+            pose = self.poses_dict[clip_name]
+
             for i in range(self.filtered_seq_len - 1):
                 for p in range(trg_people_channel_num):
                     curr_flow = self.calculate_pose_optical_flow(pose[i, p], pose[i + 1, p])
