@@ -133,9 +133,9 @@ def draw_hsv(flow):
 from scipy.ndimage import zoom, grey_dilation, maximum_filter, minimum_filter
 
 
-def json2flow(json1, json2, img_size_x, img_size_y):
+def pose2flow(pose1, pose2, img_size_x, img_size_y):
     flow = np.zeros([img_size_x, img_size_y, 2])
-    for prev_line, next_line in zip(json1.astype(int), json2.astype(int)):
+    for prev_line, next_line in zip(pose1.astype(int), pose2.astype(int)):
         draw_optical_flow(prev_line, next_line, flow)
 
     flow = maximum_filter(flow, footprint=np.ones([10, 10, 1])) \
@@ -170,8 +170,8 @@ if __name__ == '__main__':
     for i in range(59):
         lines1 = pose[i]
         lines2 = pose[i + 1]
-        flow1 = json2flow(lines1[0], lines2[0], 1280, 720)
-        flow2 = json2flow(lines1[1], lines2[1], 1280, 720)
+        flow1 = pose2flow(lines1[0], lines2[0], 1280, 720)
+        flow2 = pose2flow(lines1[1], lines2[1], 1280, 720)
         flow = flow1 + flow2
         # Image.fromarray(draw_hsv(flow.transpose([1,0,2]))).show()
 
