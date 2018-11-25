@@ -82,10 +82,13 @@ class Dataset(torchdata.Dataset):
             _video_dsc[_video_dsc == 1280.0] = 0
 
         y_values = _video_dsc[:, :, :, :, 1].numpy()
-        y_min = y_values[y_values > 0].min()
-        y_max = y_values[y_values > 0].max()
-        _video_dsc[:, :, :, :, 1] = torch.clamp(input=_video_dsc[:, :, :, :, 1]-y_min, min=0)
-        _video_dsc[:, :, :, :, 1] = _video_dsc[:, :, :, :, 1]/(y_max-y_min)
+        y_values_bigger_than_0 = y_values[y_values > 0]
+
+        if len(y_values_bigger_than_0)>0:
+            y_min = y_values_bigger_than_0.min()
+            y_max = y_values_bigger_than_0.max()
+            _video_dsc[:, :, :, :, 1] = torch.clamp(input=_video_dsc[:, :, :, :, 1]-y_min, min=0)
+            _video_dsc[:, :, :, :, 1] = _video_dsc[:, :, :, :, 1]/(y_max-y_min)
 
         #difference of poses
         video_dsc_mean = torch.mean(_video_dsc, dim=3)
