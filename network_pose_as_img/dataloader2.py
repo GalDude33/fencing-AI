@@ -104,12 +104,12 @@ class Dataset(torchdata.Dataset):
         trg_people_channel_num = 1 if self.players_in_same_channel else 2
         frames = np.zeros((self.filtered_seq_len, trg_people_channel_num, 128, 256, 3), dtype=np.uint8)
         flow = np.zeros((self.filtered_seq_len, trg_people_channel_num, 128, 256, 2), dtype=np.float32)
-        angle, translate, scale = 0.0, 0.0, 1.0
+        angle, translate, scale, shear = 0.0, 0.0, 1.0, 0.0
 
         if self.mode == 'train':
             flip = random.choice([0, 1])
             angle, translate, scale, shear = self.get_augmentation_params(angle_max=15, translate_max=((-10, 10), (-20, 10)),
-                                                                   scale_range=(0.75, 1.15), shear_max=5)
+                                                                   scale_range=(0.75, 1.15), shear_max=10)
             center = (128 * 0.5 + 0.5, 256 * 0.5 + 0.5)
             affine_matrix = np.eye(3)
             affine_matrix[:, :2] = np.array(_get_inverse_affine_matrix(center, angle, translate, scale, shear=shear)).reshape(3,2)
