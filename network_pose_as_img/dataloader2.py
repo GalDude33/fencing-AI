@@ -23,6 +23,8 @@ from scipy.ndimage import zoom, affine_transform
 
 from optical_flow_from_pose import pose2flow
 
+padding = 33
+
 
 class Dataset(torchdata.Dataset):
 
@@ -144,9 +146,29 @@ class Dataset(torchdata.Dataset):
             pose = self.poses_dict[clip_name]
             print(pose.max(), pose.min())
 
+            def get_y_lim(curr_poses):
+                all_y = curr_poses[:, :, :, :, 1]
+                all_y_non_zero = all_y[all_y > 0]
+                if len(all_y_non_zero) > 0:
+                    y_max = np.max(all_y_non_zero)
+                    y_min = np.min(all_y_non_zero)
+                else:
+                    y_max = 0
+                    y_min = 0
+                assert not np.isinf(y_max)
+                assert not np.isinf(y_min)
+                return y_min, y_max
+
+            y_min, y_max = get_y_lim(pose)
+
             for i in range(self.filtered_seq_len - 1):
                 for p in range(trg_people_channel_num):
+                    pose[p, :, :, 0] = pose[p, :, :, 0] / 5.0
+                    pose[p, :, :, 1] = pose[p, :, :, 1] / 2.0
                     curr_flow = self.calculate_pose_optical_flow(pose[i, p], pose[i + 1, p]) #.transpose([1,0,2])
+                    curr_flow = curr_flow[max(0, int(y_min / 2) - padding):min(720 // 2,int(y_max / 2) + padding), :, :]
+                    curr_flow = zoom(curr_flow, (256, 128, 2))
+
                     if self.mode == 'train':
                         #print(curr_flow.shape)
                         curr_flow = affine_transform(curr_flow, affine_matrix)
@@ -220,5 +242,5 @@ class Dataset(torchdata.Dataset):
 
     @staticmethod
     def calculate_pose_optical_flow(prev_pose, next_pose):
-        flow = pose2flow(prev_pose.astype(int), next_pose.astype(int), 256, 128)
+        flow = pose2flow(prev_pose.astype(int), next_pose.astype(int), 1024, 720)
         return flow
