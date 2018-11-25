@@ -108,11 +108,11 @@ class Dataset(torchdata.Dataset):
 
         if self.mode == 'train':
             flip = random.choice([0, 1])
-            angle, translate, scale = self.get_augmentation_params(angle_max=15, translate_max=((-10, 10), (-20, 10)),
-                                                                   scale_range=(0.75, 1.15))
+            angle, translate, scale, shear = self.get_augmentation_params(angle_max=15, translate_max=((-10, 10), (-20, 10)),
+                                                                   scale_range=(0.75, 1.15), shear_max=5)
             center = (128 * 0.5 + 0.5, 256 * 0.5 + 0.5)
             affine_matrix = np.eye(3)
-            affine_matrix[:, :2] = np.array(_get_inverse_affine_matrix(center, angle, translate, scale, shear=0)).reshape(3,2)
+            affine_matrix[:, :2] = np.array(_get_inverse_affine_matrix(center, angle, translate, scale, shear=shear)).reshape(3,2)
             #print(affine_matrix)
 
         seqs_to_count = [i for i in range(self.seq_len) if
@@ -129,7 +129,7 @@ class Dataset(torchdata.Dataset):
                         img = Image.fromarray(curr_frame_img)
                         # augmentations
                         img = torchvision.transforms.functional.affine(img, angle=angle, translate=translate,
-                                                                       scale=scale, shear=0, resample=0, fillcolor=0)
+                                                                       scale=scale, shear=shear, resample=0, fillcolor=0)
                         curr_frame_img = np.array(img)
                     frames[seqs_to_count.index(seq_ind), p % trg_people_channel_num] += curr_frame_img
 
@@ -220,13 +220,14 @@ class Dataset(torchdata.Dataset):
         flow = zoom(flow, (4, 4, 1))
         return flow.astype(np.float32)
 
-    def get_augmentation_params(self, angle_max, translate_max, scale_range):
+    def get_augmentation_params(self, angle_max, translate_max, scale_range, shear_max):
         scale = uniform(0, scale_range[1] - scale_range[0]) + scale_range[0]  # 0.75-1.15
         angle = uniform(-angle_max, angle_max)
         translate_max_x = translate_max[0]
         translate_max_y = translate_max[1]
         translate = (uniform(translate_max_x[0], translate_max_x[1]), uniform(translate_max_y[0], translate_max_y[1]))
-        return angle, translate, scale
+        shear = uniform(-shear_max, shear_max)
+        return angle, translate, scale, shear
 
     def getClipInfoFromFilename(self, descriptor_file):
         curr_clip_name = Path(descriptor_file).stem
