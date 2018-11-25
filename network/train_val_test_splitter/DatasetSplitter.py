@@ -4,8 +4,7 @@ import glob
 import os
 import ntpath
 import re
-
-from network.train_val_test_splitter.statistics import getLabelFromFilename
+from network.utils import getLabelFromFilename
 
 
 def write_list_to_file(list, filename):
@@ -16,8 +15,8 @@ def write_list_to_file(list, filename):
 
 videos_to_split = [os.path.splitext(ntpath.basename(vid))[0] for vid in
                    glob.glob('/media/rabkinda/DATA/fencing/FinalPoseEstimationResults/jsons*/*.json')]
-videos_to_split = [vid[:re.search("-\d{1,2}-\w", vid).regs[0][0]] for vid in videos_to_split]
-videos_to_split = list(set(videos_to_split))  # ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
+videos_to_split = [vid[:re.search("-\d{1,2}_keypoints", vid).regs[0][0]] for vid in videos_to_split]
+videos_to_split = list(set(videos_to_split))
 videos_to_split.sort()  # make sure that the filenames have a fixed order before shuffling
 random.seed(230)
 random.shuffle(videos_to_split)  # shuffles the ordering of filenames (deterministic given the chosen seed)

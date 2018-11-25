@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import os
 
 
 class AverageMeter(object):
@@ -104,3 +105,9 @@ def flip_label(label):
         return 0
     else:
         return 2
+
+
+def getLabelFromFilename(clip_name):
+    filename = os.path.splitext(os.path.basename(clip_name))[0]
+    result_letter = filename.split('-')[-2]
+    return result_letter
