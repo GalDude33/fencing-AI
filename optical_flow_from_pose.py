@@ -10,7 +10,7 @@ from cv2 import cv2
 from network.PoseEstimationUtils import getFencingPlayersPoseArr
 
 
-def createLineIterator(P1, P2):
+def createLineIterator(P1, P2, imageH, image_W):
     """
     Produces and array that consists of the coordinates and intensities of each pixel in a line between two points
 
@@ -77,9 +77,9 @@ def createLineIterator(P1, P2):
             itbuffer[1:, 1] = (slope * (itbuffer[1:, 0] - P1X)).astype(np.int) + P1Y
 
     # Remove points outside of image
-    # colX = itbuffer[:, 0]
-    # colY = itbuffer[:, 1]
-    # itbuffer = itbuffer[(colX >= 0) & (colY >= 0) & (colX < imageW) & (colY < imageH)]
+    colX = itbuffer[:, 0]
+    colY = itbuffer[:, 1]
+    itbuffer = itbuffer[(colX >= 0) & (colY >= 0) & (colX < imageW) & (colY < imageH)]
 
     # Get intensities from img ndarray
     # itbuffer[:, 2] = img[itbuffer[:, 1].astype(np.uint), itbuffer[:, 0].astype(np.uint)]
@@ -111,7 +111,7 @@ class LineOpticalFlow:
 
 def draw_optical_flow(prev_line, next_line, of):
     lof = LineOpticalFlow(prev_line, next_line)
-    pts = createLineIterator(prev_line[0], prev_line[1])
+    pts = createLineIterator(prev_line[0], prev_line[1], of.shape[0], of.shape[1])
     new_pts = lof.transform(pts)
     dist = new_pts - pts
     of[pts.astype(int)[:, 0], pts.astype(int)[:, 1]] = dist
