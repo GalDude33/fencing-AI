@@ -16,7 +16,7 @@ class FencingModel(nn.Module):
         self.drop_prob_lm = 0#0.5#opt.drop_prob_lm
         self.input_size = 96#192#2 * NUM_LIMBS * 4
 
-        self.rnn_left_player = getattr(
+        self.rnn_player = getattr(
             nn,
             self.rnn_type.upper())(
             self.input_size,
@@ -24,13 +24,13 @@ class FencingModel(nn.Module):
             self.num_layers,
             dropout=self.drop_prob_lm)
 
-        self.rnn_right_player = getattr(
-            nn,
-            self.rnn_type.upper())(
-            self.input_size,
-            self.rnn_size,
-            self.num_layers,
-            dropout=self.drop_prob_lm)
+        # self.rnn_right_player = getattr(
+        #     nn,
+        #     self.rnn_type.upper())(
+        #     self.input_size,
+        #     self.rnn_size,
+        #     self.num_layers,
+        #     dropout=self.drop_prob_lm)
 
         self.rnn_sum = getattr(
             nn,
@@ -46,10 +46,10 @@ class FencingModel(nn.Module):
     def forward(self, frames_pose_tensor):
         _frames_pose_tensor = frames_pose_tensor
         _frames_pose_tensor = _frames_pose_tensor.transpose(0, 1)
-        output_left, state_left = self.rnn_left_player(_frames_pose_tensor[:,:,0,:])
-        output_right, state_right = self.rnn_right_player(_frames_pose_tensor[:,:,1,:])
+        output_left, state_left = self.rnn_player(_frames_pose_tensor[:,:,0,:])
+        output_right, state_right = self.rnn_player(_frames_pose_tensor[:,:,1,:])
 
         output_combined = torch.cat([output_left, output_right], dim=2)
-        output, state =self.rnn_sum(output_combined)
+        output, state = self.rnn_sum(output_combined)
         res = self.fc(output[-1])
         return F.log_softmax(res, dim=1)
