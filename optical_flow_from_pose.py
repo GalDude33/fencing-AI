@@ -10,7 +10,7 @@ from cv2 import cv2
 from network.PoseEstimationUtils import getFencingPlayersPoseArr
 
 
-def createLineIterator(P1, P2, imageH, image_W):
+def createLineIterator(P1, P2, imageW, imageH):
     """
     Produces and array that consists of the coordinates and intensities of each pixel in a line between two points
 
