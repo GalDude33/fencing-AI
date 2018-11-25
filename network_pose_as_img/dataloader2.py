@@ -39,19 +39,17 @@ class Dataset(torchdata.Dataset):
 
         video_names_to_filter = [x.rstrip() for x in open(txt_path, 'r')]
         self.poses_clips_path = poses_path
-        vid_pose_files = [vid_pose_file for vid_pose_file in glob.glob(self.poses_clips_path + "/*.mp4")]
+        self.clip_pose_file_paths = set([vid_pose_file for vid_pose_file in glob.glob(self.poses_clips_path + "/*/*.mp4")])
         self.objects = []
 
-        for vid_pose_file in vid_pose_files:
-            if any(vid_filter for vid_filter in video_names_to_filter if vid_filter in vid_pose_file):
-                curr_clip_name, curr_clip_num, curr_label = self.getClipInfoFromFilename(vid_pose_file)
+        self.clip_name2path_dict={}
+        for curr_clip_path in self.clip_pose_file_paths:
+            curr_clip_name, curr_clip_num, curr_label = self.getClipInfoFromFilename(curr_clip_path)
+            self.clip_name2path_dict[curr_clip_name] = (curr_clip_path, curr_label)
 
-                # if curr_label == 2:
-                #    # if it is first clip of video, ignore it
-                #    #if int(curr_clip_num) == 0:
-                #    continue
-
-                self.objects.append((curr_clip_name, curr_label))
+        for curr_clip_name in video_names_to_filter:
+            curr_label = self.clip_name2path_dict[curr_clip_name][1]
+            self.objects.append((curr_clip_name, curr_label))
 
         #self.poses_dict = {}
         if pose_jsons_dir is not None:
@@ -97,9 +95,10 @@ class Dataset(torchdata.Dataset):
         if self.mode == 'train':
             random.shuffle(self.objects)
 
+
     def __getitem__(self, index):
         clip_name, label = self.objects[index]
-        clip_path = os.path.join(self.poses_clips_path, clip_name + '.mp4')
+        clip_path = self.clip_name2path_dict[clip_name][0]
         cap = CV2VideoCapture(clip_path)
         trg_people_channel_num = 1 if self.players_in_same_channel else 2
         frames = np.zeros((self.filtered_seq_len, trg_people_channel_num, 128, 256, 3), dtype=np.uint8)
@@ -229,8 +228,8 @@ class Dataset(torchdata.Dataset):
         shear = uniform(-shear_max, shear_max)
         return angle, translate, scale, shear
 
-    def getClipInfoFromFilename(self, descriptor_file):
-        curr_clip_name = Path(descriptor_file).stem
+    def getClipInfoFromFilename(self, path):
+        curr_clip_name = Path(path).stem
         curr_label = self.getLabelFromFilename(curr_clip_name)
         curr_clip_num = self.getClipNumberFromFilename(curr_clip_name)
         return curr_clip_name, curr_clip_num, curr_label

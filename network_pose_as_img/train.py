@@ -47,7 +47,7 @@ labels_arr = np.array([0, 1, 2])
 device = torch.device("cuda" if use_cuda else "cpu")
 
 valid_dataset = Dataset(mode='val', txt_path='network/train_val_test_splitter/val.txt',
-                        poses_path=os.path.join(args.poses_video_path, 'val'), pose_jsons_dir=args.poses_jsons_path,
+                        poses_path=args.poses_video_path, pose_jsons_dir=args.poses_jsons_path,
                         filtered_seq_len=args.filtered_seq_len, filtered_seq_step_size=args.filtered_seq_step_size,
                         use_optical_flow=args.use_optical_flow, use_pose_optical_flow=args.use_pose_optical_flow,
                         players_in_same_channel=args.players_in_same_channel)
@@ -57,7 +57,7 @@ valid_loader = torch.utils.data.DataLoader(valid_dataset,
                                            pin_memory=True)
 
 test_dataset = Dataset(mode='test', txt_path='network/train_val_test_splitter/test.txt',
-                       poses_path=os.path.join(args.poses_video_path, 'test'), pose_jsons_dir=args.poses_jsons_path,
+                       poses_path=args.poses_video_path, pose_jsons_dir=args.poses_jsons_path,
                        filtered_seq_len=args.filtered_seq_len, filtered_seq_step_size=args.filtered_seq_step_size,
                        use_optical_flow=args.use_optical_flow, use_pose_optical_flow=args.use_pose_optical_flow,
                        players_in_same_channel=args.players_in_same_channel)
@@ -67,7 +67,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset,
                                           pin_memory=True)
 
 train_dataset = Dataset(mode='train', txt_path='network/train_val_test_splitter/train.txt',
-                        poses_path=os.path.join(args.poses_video_path, 'train'), pose_jsons_dir=args.poses_jsons_path,
+                        poses_path=args.poses_video_path, pose_jsons_dir=args.poses_jsons_path,
                         filtered_seq_len=args.filtered_seq_len, filtered_seq_step_size=args.filtered_seq_step_size,
                         use_optical_flow=args.use_optical_flow, use_pose_optical_flow=args.use_pose_optical_flow,
                         players_in_same_channel=args.players_in_same_channel)
