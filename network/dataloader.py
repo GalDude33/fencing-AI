@@ -71,7 +71,7 @@ class Dataset(torchdata.Dataset):
 
 
     def __getitem__(self, index):
-        video_dsc, label, base_clip_name = self.objects[index % len(self.objects)]
+        video_dsc, label, base_clip_name = self.objects[index]# % len(self.objects)]
 
         _video_dsc = video_dsc
 
@@ -107,7 +107,7 @@ class Dataset(torchdata.Dataset):
 
 
     def __len__(self):
-        return len(self.objects) * 2
+        return len(self.objects)
 
 
     def getClipInfoFromFilename(self, descriptor_file):
