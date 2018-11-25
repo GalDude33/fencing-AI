@@ -59,7 +59,7 @@ class Dataset(torchdata.Dataset):
                     self.poses_dict = pickle.load(f)
             else:
                 descriptor_files = list(glob.glob(pose_jsons_dir + "/*/*.json"))
-                clip_names = set([os.path.join(Path(_).parent+Path(_).stem[:-len('-00_keypoints')]) for _ in descriptor_files])
+                clip_names = set([os.path.join(Path(_).parent.stem,Path(_).stem[:-len('-00_keypoints')]) for _ in descriptor_files])
 
                 padding = 33
                 def fix_poses(poses):
@@ -81,10 +81,10 @@ class Dataset(torchdata.Dataset):
                     return poses
 
                 def clip_name_to_pose(clip_name):
-                    curr_descriptors = ['{}-{:02d}_keypoints.json'.format(clip_name, i) for i in range(1, 60 + 1)]
+                    curr_descriptors = [os.path.join(pose_jsons_dir, '{}-{:02d}_keypoints.json').format(clip_name, i) for i in range(1, 60 + 1)]
                     poses = getFencingPlayersPoseArr(curr_descriptors)
                     poses = fix_poses(poses)
-                    return (clip_name, poses)
+                    return (clip_name.split('/')[-1], poses)
                 with Pool() as p:
                     self.poses_dict = dict(p.map(clip_name_to_pose, clip_names))
                 with gzip.open(pickle_file, 'wb') as f:
