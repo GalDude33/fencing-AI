@@ -8,7 +8,7 @@ class FencingModel(nn.Module):
 
     def __init__(self):
         super(FencingModel, self).__init__()
-        output_size = 2#3
+        output_size = 3
         #rnn properties
         self.rnn_type = 'lstm'#opt.rnn_type
         self.rnn_size = 128#opt.rnn_size
