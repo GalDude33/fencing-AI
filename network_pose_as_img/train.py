@@ -30,11 +30,12 @@ parser.add_argument('--poses_video_path', type=str, help='poses_video_path')
 parser.add_argument('--poses_jsons_path', type=str, default=None, help='poses_jsons_path')
 parser.add_argument('--base_exp_name', type=str, help='base_exp_name')
 parser.add_argument('--players_in_same_channel', type=int, default=0, help='players_in_same_channel')
+parser.add_argument('--checkpoint', type=str, default=None, help='checkpoint')
 
 args = parser.parse_args()
 use_cuda = True
 weight_decay = 0  # 1e-5
-checkpoint = ''
+#checkpoint = ''
 expName = '{base_exp_name}_lr_{lr}_wd_0_b_{batch}_look_{seq_len}_step_{step}_{date}_samechan{same_chan}' \
     .format(base_exp_name=args.base_exp_name, lr=args.learning_rate, batch=args.batch_size,
             seq_len=args.filtered_seq_len,
@@ -178,8 +179,8 @@ def main():
 
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=weight_decay)
 
-    if checkpoint != '':
-        checkpoint_args_path = os.path.dirname(checkpoint) + '/args.pth'
+    if args.checkpoint != '':
+        checkpoint_args_path = os.path.dirname(args.checkpoint) + '/args.pth'
         checkpoint_args = torch.load(checkpoint_args_path)
 
         start_epoch = checkpoint_args[1]
@@ -188,7 +189,7 @@ def main():
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
 
-        model.load_state_dict(torch.load(checkpoint))
+        model.load_state_dict(torch.load(args.checkpoint))
 
     weights = None
     criterion = nn.NLLLoss(weight=weights).to(device)
@@ -218,8 +219,8 @@ def main():
             epochs_since_improvement = 0
             best_val_err_full_info = {'epoch': epoch, 'train_avg_loss': train_avg_loss, 'train_avg_acc': train_avg_acc,
                                       'train_avg_dist_arr': train_avg_dist_arr,
-                                      'val_avg_loss': val_avg_loss, 'val_avg_acc': val_avg_acc,
-                                      'val_avg_dist_arr': val_avg_dist_arr}
+                                      'val_avg_loss': val_avg_loss, 'val_avg_acc': val_avg_acc}#,
+                                      #'val_avg_dist_arr': val_avg_dist_arr}
         else:
             epochs_since_improvement += 1
             print("\nEpochs since last improvement: %d\n" % (epochs_since_improvement,))
@@ -233,7 +234,10 @@ def main():
     print(json.dumps(best_val_err_full_info, indent=4, sort_keys=True))
 
     print('Running Test\n')
-    model.load_state_dict(torch.load('%s/bestmodel.pth' % (expName)))
+    model_path = '%s/bestmodel.pth' % (expName)
+    if not os.path.exists(model_path):
+        model_path = args.checkpoint
+    model.load_state_dict(torch.load(model_path))
     test_avg_loss, test_avg_acc, test_avg_dist_arr = evaluate(model, criterion, epoch, None, test_loader)
 
     test_result_str = '====> Total test set loss: {:.4f}, acc: {:.4f}, dist: ({:.4f}, {:.4f}, {:.4f})\n'.format(
