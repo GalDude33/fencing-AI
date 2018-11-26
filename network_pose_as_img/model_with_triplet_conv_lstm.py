@@ -90,7 +90,7 @@ class Decoder(nn.Module):
 
 class FencingModel(nn.Module):
 
-    def __init__(self, players_in_same_channel, use_optical_flow, use_pose_img):
+    def __init__(self, players_in_same_channel, use_optical_flow, use_pose_optical_flow, use_pose_img):
         super(FencingModel, self).__init__()
         output_size = 3
 
