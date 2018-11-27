@@ -23,10 +23,13 @@ Optical Flow Advantages:
 - Focus on the movement changes, critical information for understanding who is the initiative of the play
 
 <h3> Network </h3>
+<p>
 We used C3D where optical flow information and poses information where concatenated in channel dimension, and inserted together to the network as input
 Also experimented with gathering the two players information in same channel vs in two different channels.
-
-Pose Estimation
+<p>
+<br>
+  
+<b>Pose Estimation</b>
 <p align="center">
   <img src="LoYM4N80iEI-18-L-9766.gif?raw=true" alt=""/>
 </p>
