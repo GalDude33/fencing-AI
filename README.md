@@ -34,7 +34,7 @@ Also experimented with gathering the two players information in same channel vs 
   <img src="LoYM4N80iEI-18-L-9766.gif?raw=true" alt=""/>
 </p>
 
-Accurate Optical Flow from Pose Estimation
+<b>Accurate Optical Flow from Pose Estimation</b>
 <p align="center">
   <img src="optical_flow.gif?raw=true" alt=""/>
 </p>
