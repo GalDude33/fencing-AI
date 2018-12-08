@@ -30,7 +30,7 @@ class TemporalModelBase(nn.Module):
         
         self.pad = [ filter_widths[0] // 2 ]
         self.expand_bn = nn.BatchNorm1d(channels, momentum=0.1)
-        self.shrink = nn.Conv1d(channels, num_joints_out*3, 1)
+        self.shrink = nn.Conv1d(channels, num_joints_out, 1)
         
 
     def set_bn_momentum(self, momentum):
@@ -72,7 +72,7 @@ class TemporalModelBase(nn.Module):
         x = self._forward_blocks(x)
         
         x = x.permute(0, 2, 1)
-        x = x.view(sz[0], -1, self.num_joints_out, 3)
+        x = x.view(sz[0], -1, self.num_joints_out)
         
         return x    
 

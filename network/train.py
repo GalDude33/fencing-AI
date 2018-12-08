@@ -7,17 +7,17 @@ from tqdm import tqdm
 import os
 import json
 import numpy as np
-from network.model import FencingModel
+from network.model1 import FencingModel
 from network.dataloader import Dataset
 from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, accuracy, check_grad
 
 
-batch_size = 128
+batch_size = 64
 workers = 16
 use_cuda = True
-learning_rate = 1e-4
+learning_rate = 1e-3
 checkpoint = ''
-expName = 'fencing_exp'
+expName = 'fencing_exp_coordinates_b_64_facebook_net_lr_1e-3_dropout_0.5'
 epochs = 100
 adjust_lr_manually = 1
 max_not_improving_epochs = 10
@@ -25,7 +25,6 @@ clip_grad = 0.5
 ignore_grad = 10000.0
 labels_arr = np.array([0, 1, 2])
 device = torch.device("cuda" if use_cuda else "cpu")
-
 
 descriptor_dir = '/media/rabkinda/DATA/fencing/FinalPoseEstimationResults/jsons*'
 

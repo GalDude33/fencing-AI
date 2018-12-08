@@ -1,7 +1,7 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from network.PoseEstimationUtils import NUM_LIMBS
+from network.PoseEstimationUtils import NUM_POINTS
+from network.temporal_model import TemporalModel
 
 
 class FencingModel(nn.Module):
@@ -9,48 +9,17 @@ class FencingModel(nn.Module):
     def __init__(self):
         super(FencingModel, self).__init__()
         output_size = 3
-        #rnn properties
-        self.rnn_type = 'lstm'#opt.rnn_type
-        self.rnn_size = 128#opt.rnn_size
-        self.num_layers = 1#opt.num_layers
-        self.drop_prob_lm = 0.5#opt.drop_prob_lm
-        self.input_size = 100#96#192#2 * NUM_LIMBS * 4
-
-        self.rnn_player = getattr(
-            nn,
-            self.rnn_type.upper())(
-            self.input_size,
-            self.rnn_size,
-            self.num_layers,
-            dropout=self.drop_prob_lm)
-
-        # self.rnn_right_player = getattr(
-        #     nn,
-        #     self.rnn_type.upper())(
-        #     self.input_size,
-        #     self.rnn_size,
-        #     self.num_layers,
-        #     dropout=self.drop_prob_lm)
-
-        self.rnn_sum = getattr(
-            nn,
-            self.rnn_type.upper())(
-            128*2,
-            128,
-            self.num_layers,
-            dropout=self.drop_prob_lm)
-
-        self.dropout = nn.Dropout(p=0.5)
-        self.fc = nn.Linear(int(self.rnn_size), output_size)
+        architecture = '3,3,3'
+        filter_widths = [int(x) for x in architecture.split(',')]
+        self.temporal_model = TemporalModel(num_joints_in=NUM_POINTS, in_features=2*2, num_joints_out=output_size, filter_widths=filter_widths,
+                                            causal=False, dropout=0.5, channels=1024, dense=False)
 
 
     def forward(self, frames_pose_tensor):
-        _frames_pose_tensor = frames_pose_tensor
-        _frames_pose_tensor = _frames_pose_tensor.transpose(0, 1)
-        output_left, state_left = self.rnn_player(_frames_pose_tensor[:,:,0,:])
-        output_right, state_right = self.rnn_player(_frames_pose_tensor[:,:,1,:])
+        batch_size, seq_len, people_num, limbs_num, limb_feature_size = frames_pose_tensor.shape
+        _frames_pose_tensor = frames_pose_tensor.permute(0,1,3,2,4)
+        _frames_pose_tensor = frames_pose_tensor.view(batch_size, seq_len, limbs_num, people_num*limb_feature_size)
 
-        output_combined = torch.cat([output_left, output_right], dim=2)
-        output, state = self.rnn_sum(output_combined)
-        res = self.fc(self.dropout(output[-1]))
+        res = self.temporal_model(_frames_pose_tensor)
+        res = res.squeeze()
         return F.log_softmax(res, dim=1)

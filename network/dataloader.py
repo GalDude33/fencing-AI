@@ -12,6 +12,7 @@ from tqdm import tqdm
 from network.PoseEstimationUtils import getFencingPlayersPoseArr, normalize_point_pair_pose_arr, convert_lines_to_points
 from network.utils import get_label_from_letter, flip_label
 from skimage.transform import AffineTransform
+from random import uniform
 
 
 class Dataset(torchdata.Dataset):
@@ -75,17 +76,19 @@ class Dataset(torchdata.Dataset):
 
         print('finishing dataloader init')
 
-    def get_augmentation_params(self, angle_max=3, translate_max=5, scale_range=0.1, max_shear=2):
-        scale = np.random.normal(1, scale_range, size=2)  # 0.75-1.15
-        angle = np.random.normal(0, angle_max)
-        translate = np.random.normal(0, translate_max, size=2)
-        shear = np.random.normal(0, max_shear)
+    def get_augmentation_params(self, angle_max=10, translate_max=((-10, 10), (-20, 10)), scale_range=(0.75, 1.15), max_shear=5):
+        scale = uniform(0, scale_range[1] - scale_range[0]) + scale_range[0]  # 0.75-1.15
+        angle = uniform(-angle_max, angle_max)
+        translate_max_x = translate_max[0]
+        translate_max_y = translate_max[1]
+        translate = (uniform(translate_max_x[0], translate_max_x[1]), uniform(translate_max_y[0], translate_max_y[1]))
+        shear = uniform(-max_shear, max_shear)
         return angle, translate, scale, shear
 
-    def augment_player(self, p):
-        angle, translate, scale, shear = self.get_augmentation_params()
-        tform = AffineTransform(scale=scale, rotation=np.deg2rad(angle), shear=np.deg2rad(shear),
-                                translation=translate)
+
+    def augment_player(self, p, angle, translate, scale, shear):
+        tform = AffineTransform(scale=(scale, scale), rotation=np.deg2rad(angle), shear=np.deg2rad(shear),
+                                 translation=translate)
         transformation_res = []
         batch_size = p.shape[0]
         for b in range(batch_size):
@@ -95,7 +98,7 @@ class Dataset(torchdata.Dataset):
     def __getitem__(self, index):
         video_dsc, label, base_clip_name = self.objects[index]  # % len(self.objects)]
 
-        video_dsc = video_dsc[52 - 16 - 1:52]  # .float()
+        video_dsc = video_dsc[52 - 27 - 1:52]
         seq_len = video_dsc.shape[0]
         _video_dsc = []
         video_dsc_as_numpy = video_dsc.numpy()
@@ -105,9 +108,13 @@ class Dataset(torchdata.Dataset):
         _video_dsc = np.array(_video_dsc)  # torch.from_numpy(np.array(_video_dsc))
 
         # Augment
-        _video_dsc[:, 0] = self.augment_player(_video_dsc[:, 0])
-        _video_dsc[:, 1] = self.augment_player(_video_dsc[:, 1])
-        _video_dsc += np.random.normal(scale=3, size=_video_dsc.shape)
+        if self.mode == 'train':
+            zero_inds = (_video_dsc == 0)
+            angle, translate, scale, shear = self.get_augmentation_params()
+            _video_dsc[:, 0] = self.augment_player(_video_dsc[:, 0], angle, translate, scale, shear)
+            _video_dsc[:, 1] = self.augment_player(_video_dsc[:, 1], angle, translate, scale, shear)
+            _video_dsc += np.random.normal(scale=5, size=_video_dsc.shape)
+            _video_dsc[zero_inds] = 0
 
         _video_dsc[:, :, :, 0] = np.clip(a=_video_dsc[:,:,:,0], a_min=0, a_max=1280.0)
         _video_dsc[:, :, :, 1] = np.clip(a=_video_dsc[:, :, :, 1], a_min=0, a_max=720.0)
@@ -137,12 +144,12 @@ class Dataset(torchdata.Dataset):
         video_dsc_norm = normalize_point_pair_pose_arr(_video_dsc)
         # video_dsc_norm_mean_points = torch.mean(video_dsc_norm, dim=3)
 
-        video_dcs = np.concatenate((video_dsc_as_diff, video_dsc_norm[1:]),
-                                   axis=-1)  # torch.cat([video_dsc_as_diff, video_dsc_norm[1:]], dim=-1)
+        video_dcs = video_dsc_norm[1:]#np.concatenate((video_dsc_as_diff, video_dsc_norm[1:]),
+        #                           axis=-1)  # torch.cat([video_dsc_as_diff, video_dsc_norm[1:]], dim=-1)
 
         video_dcs = torch.from_numpy(video_dcs)
-        filtered_seq_len, people_num, limbs_num, limb_feature_size = video_dcs.shape
-        video_dcs = video_dcs.view(filtered_seq_len, people_num, -1)
+        #filtered_seq_len, people_num, limbs_num, limb_feature_size = video_dcs.shape
+        #video_dcs = video_dcs.view(filtered_seq_len, people_num, -1)
         return video_dcs.float(), label, base_clip_name
 
     def __len__(self):
