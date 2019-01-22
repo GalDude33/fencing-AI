@@ -4,7 +4,7 @@ import torch.nn as nn
 from tqdm import tqdm
 import numpy as np
 
-from network.model import FencingModel
+from network.model_with_dilated_conv import FencingModel
 from network.dataloader import Dataset
 from network.utils import AverageMeter, BinCounterMeter, accuracy, get_letter_from_label
 

@@ -7,7 +7,7 @@ from tqdm import tqdm
 import os
 import json
 import numpy as np
-from network.model1 import FencingModel
+from network.model_with_dilated_conv import FencingModel
 from network.dataloader import Dataset
 from network.utils import AverageMeter, BinCounterMeter, adjust_learning_rate, accuracy, check_grad
 
