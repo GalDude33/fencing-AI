@@ -27,6 +27,14 @@ Optical Flow Advantages:
 We used C3D where optical flow information and poses information where concatenated in channel dimension, and inserted together to the network as input
 Also experimented with gathering the two players information in same channel vs in two different channels.
 <p>
+  <p>Hi there!
+
+My name's Vance, I'm starting some related work trying to make a AI saber fencing referee. I'm really focused on in the box actions (attack, attack on prep, together) and the distinctions there. I'm exploring pose estimation. I'm working with CyrusOfChaos (Andrew) on this.
+Would love to connect to learn about the work you've already done here!
+Appreciate any help & guidance you can offer.
+
+Best,
+Vance</p>
 <br>
   
 <b>Pose Estimation</b>
